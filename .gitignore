@@ -1,3 +1,12 @@
+# IDE directories
+.vscode
+
+# clangd artifacts
+.cache/
+
+# Non-relevant
+*.json
+
 # Prerequisites
 *.d
 
@@ -41,15 +50,6 @@
 *.su
 *.idb
 *.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
 
 # debug information files
 *.dwo
