@@ -1,6 +1,7 @@
 CC       := gcc
 AR       := ar
-CFLAGS   := -Wall -Wl,--wrap=malloc -Wl,--wrap=free -std=c11 -O2
+CFLAGS   := -Wall -std=c11 -O2
+CFLAGS_WRAPALLOC   := -Wall -Wl,--wrap=malloc -Wl,--wrap=free -std=c11 -O2
 CPPFLAGS := -Iinclude
 
 TARGET   := reclaim

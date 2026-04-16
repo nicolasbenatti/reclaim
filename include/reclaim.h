@@ -3,8 +3,11 @@
 
 #include <stddef.h>
 
-void *malloc(size_t size);
+/// Utility function to reserve memory beforehand
+void recl_alloc_main_heap(void);
 
-void free(void *ptr);
+void *recl_malloc(size_t size);
+
+void recl_free(void *ptr);
 
 #endif // RECLAIM_H
