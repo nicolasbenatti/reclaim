@@ -35,9 +35,7 @@ static void *run_benchmark(void *__data) {
 }
 
 int main(int argc, char **argv) {
-  int nthreads = 1;
-  int64_t n_iter = 1000000;
-  int is_glibc = 0;
+  int nthreads, n_iter, is_glibc = 0;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
