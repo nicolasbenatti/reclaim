@@ -114,9 +114,21 @@ static void global_init(void) {
   pthread_key_create(&tcache_key, tcache_destroy);
 }
 
+/**
+ * Destruct the allocator subsystem.
+ */
+static void global_deinit(void) {
+  tcache_destroy(NULL);
+  ccache_deinit();
+  // Release span memory to the OS.
+  backend_deinit();
+  pthread_key_delete(tcache_key);
+}
+
 // ===== Public API =====
 
 void recl_alloc_main_heap(void) { pthread_once(&init_once, global_init); }
+void recl_free_main_heap(void) { global_deinit(); }
 
 void *recl_malloc(size_t size) {
   if (size == 0)

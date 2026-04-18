@@ -1,4 +1,5 @@
 #include "internal.h"
+#include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,6 +22,17 @@ void backend_init(void) {
   scache = NULL;
 }
 
+void backend_deinit(void) {
+  // Walk the scache list and release every span to the OS.
+  span_t *s = scache;
+  while (s) {
+    span_t *next = s->next;
+    munmap(s, SPAN_SIZE);
+    s = next;
+  }
+  scache = NULL;
+  pthread_spin_destroy(&span_lock);
+}
 /**
  * Allocate a span.
  *
@@ -108,10 +120,13 @@ span_t *span_alloc(int size_class) {
   return s;
 }
 
-// ------------------------------------------------------------------
-//  Public: release a fully-empty span back to the cache
-// ------------------------------------------------------------------
-
+/**
+ * Public: release an empty span back to the cache
+ *
+ * NOTE: for now, reclaim doesn't yield memory back
+ * to the OS unless `recl_free_main_heap` is called.
+ * It might in the future.
+ */
 void span_release(span_t *s) {
   s->magic = 0;
 

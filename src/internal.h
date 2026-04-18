@@ -56,13 +56,16 @@ int size_to_class(size_t size);
 // Map a size-class index to the actual allocation size
 size_t class_to_size(int sc);
 
+void backend_init(void);
+void backend_deinit(void);
+
 span_t *span_alloc(int size_class);
 void span_release(span_t *s);
 void *large_alloc(size_t size);
 void large_free(void *ptr);
-void backend_init(void);
 
 void ccache_init(void);
+void ccache_deinit(void);
 void *central_fetch(int sc, int batch, int *out_count);
 void central_return(int sc, void *list, int count);
 

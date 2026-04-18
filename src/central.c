@@ -1,4 +1,6 @@
 #include "internal.h"
+#include <pthread.h>
+#include <sys/mman.h>
 
 /**
  * Central cache (`ccache`).
@@ -17,6 +19,36 @@ void ccache_init(void) {
     pthread_spin_init(&ccache[i].lock, PTHREAD_PROCESS_PRIVATE);
     ccache[i].head = NULL;
     ccache[i].count = 0;
+  }
+}
+
+void ccache_deinit(void) {
+  // Walk every bin's free list and clear it.
+  span_t *to_free = NULL;
+
+  for (int i = 0; i < NUM_SIZE_CLASSES; i++) {
+    void *cur = ccache[i].head;
+    while (cur) {
+      void *next_obj = *(void **)cur;
+      span_t *s = (span_t *)((uintptr_t)cur & SPAN_MASK);
+      if (s->magic == SPAN_MAGIC) {
+        // Set magic numbers to 0 to avoid re-queueing it.
+        s->magic = 0;
+        s->next = to_free;
+        to_free = s;
+      }
+      cur = next_obj;
+    }
+    pthread_spin_destroy(&ccache[i].lock);
+    ccache[i].head = NULL;
+    ccache[i].count = 0;
+  }
+
+  span_t *s = to_free;
+  while (s) {
+    span_t *next = s->next;
+    munmap(s, SPAN_SIZE);
+    s = next;
   }
 }
 
