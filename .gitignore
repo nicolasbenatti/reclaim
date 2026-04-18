@@ -4,8 +4,13 @@
 # clangd artifacts
 .cache/
 
+# build artifacts
+
+build
+build_cmake
+
 # Non-relevant
-*.json
+compile_commands.json
 
 # Prerequisites
 *.d
