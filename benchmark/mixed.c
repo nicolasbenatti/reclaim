@@ -37,11 +37,11 @@ void *run_benchmark(void *__data) {
   int nlive = 0;
 
   for (int64_t _iter = 0; _iter < data->n_iter; _iter++) {
-    uint64_t r = xorshift64(&rng);
+    uint64_t r = _rand(&rng);
 
     if (nlive < MAX_LIVE / 2 || (nlive < MAX_LIVE && (r & 1))) {
       // Allocate
-      size_t sz = (size_t)(xorshift64(&rng) % 40000) + 1;
+      size_t sz = (size_t)(_rand(&rng) % 40000) + 1;
       void *p = (data->is_glibc) ? malloc(sz) : recl_malloc(sz);
       if (p) {
         // Touch first bytes to ensure the page is faulted in
@@ -65,6 +65,7 @@ void *run_benchmark(void *__data) {
 
 int main(int argc, char **argv) {
   int nthreads, n_iter, is_glibc;
+
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
       nthreads = atoi(argv[++i]);
