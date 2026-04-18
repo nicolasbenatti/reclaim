@@ -13,7 +13,7 @@
 // Config parameters
 #define MAX_THREADS 32
 #define MAX_PER_THREAD_ALLOCS 8192
-#define CHUNK_SIZE_BYTES 128
+#define CHUNK_SIZE_BYTES 64
 
 typedef struct {
   int is_glibc;
