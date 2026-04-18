@@ -4,6 +4,9 @@
 # clangd artifacts
 .cache/
 
+# build folders
+build*
+
 # Non-relevant
 *.json
 
