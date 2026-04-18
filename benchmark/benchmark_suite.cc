@@ -23,6 +23,53 @@ static inline uint64_t xorshift64(uint64_t *state) {
   return x;
 }
 
+// === simple ===
+// Simple allocation benchmark inspired to ltalloc,
+// in which threads repeatedly allocate and free
+// fixed-size chunks.
+static void BM_simple(benchmark::State &state) {
+  // Config parameters
+  static const int CHUNK_SIZE_BYTES = 128;
+
+  // const int id = state.thread_index();
+  // uint64_t rng = (uint64_t)id * 6364136223846793005ULL + 1;
+
+  for (auto _ : state) {
+    char *p = (char *)recl_malloc(CHUNK_SIZE_BYTES);
+    recl_free(p);
+  }
+
+  // Report ops per second
+  state.SetItemsProcessed(state.iterations());
+}
+
+// Register benchmark for multi and single-thread workloads.
+BENCHMARK(BM_simple)->Threads(1)->Threads(16)->Iterations(1000000)->Unit(
+    benchmark::kMicrosecond);
+
+static void BM_simple_glibc(benchmark::State &state) {
+  // Config parameters
+  static const int CHUNK_SIZE_BYTES = 128;
+
+  // const int id = state.thread_index();
+  // uint64_t rng = (uint64_t)id * 6364136223846793005ULL + 1;
+
+  for (auto _ : state) {
+    char *p = (char *)malloc(CHUNK_SIZE_BYTES);
+    free(p);
+  }
+
+  // Report ops per second
+  state.SetItemsProcessed(state.iterations());
+}
+
+// Register benchmark for multi and single-thread workloads.
+BENCHMARK(BM_simple_glibc)
+    ->Threads(1)
+    ->Threads(16)
+    ->Iterations(1000000)
+    ->Unit(benchmark::kMicrosecond);
+
 // === mixed ===
 // Each benchmark iteration is one alloc or free decision.
 static void BM_mixed(benchmark::State &state) {
