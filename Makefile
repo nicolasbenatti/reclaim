@@ -11,7 +11,7 @@ CPPFLAGS := -Iinclude
 
 TARGET    := reclaim
 LIB_NAME  := libreclaim.a
-BENCH_BIN := libreclaim_benchmark
+BENCH_BINS := bench_simple bench_mixed bench_malloc_large
 
 SRC_DIR   := src
 BENCH_DIR := benchmark
@@ -21,9 +21,6 @@ SRC_SRCS := $(wildcard $(SRC_DIR)/*.c)
 SRC_OBJS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_SRCS))
 
 MAIN_OBJ   := $(BUILD_DIR)/main.o
-
-BENCH_SRCS := $(wildcard $(BENCH_DIR)/*.cc)
-BENCH_OBJS := $(patsubst $(BENCH_DIR)/%.cc,$(BUILD_DIR)/bench_%.o,$(BENCH_SRCS))
 
 .PHONY: all lib bench clean asan tsan
 
@@ -47,13 +44,19 @@ $(BUILD_DIR)/$(LIB_NAME): $(SRC_OBJS)
 	@mkdir -p $(BUILD_DIR)
 	@$(AR) rcs $@ $^
 
-bench: lib $(BENCH_OBJS)
-	@mkdir -p $(BUILD_DIR)
-	@$(CXX) $(CXXFLAGS) $(BENCH_OBJS) -L$(BUILD_DIR) -lreclaim -lbenchmark -lpthread -o $(BUILD_DIR)/$(BENCH_BIN)
+bench: lib $(addprefix $(BUILD_DIR)/,$(BENCH_BINS))
 
-$(BUILD_DIR)/bench_%.o: $(BENCH_DIR)/%.cc
+$(BUILD_DIR)/bench_simple: $(BENCH_DIR)/simple.c $(BUILD_DIR)/$(LIB_NAME)
 	@mkdir -p $(BUILD_DIR)
-	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -L$(BUILD_DIR) -lreclaim -lpthread -o $@
+
+$(BUILD_DIR)/bench_mixed: $(BENCH_DIR)/mixed.c $(BUILD_DIR)/$(LIB_NAME)
+	@mkdir -p $(BUILD_DIR)
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -L$(BUILD_DIR) -lreclaim -lpthread -o $@
+
+$(BUILD_DIR)/bench_malloc_large: $(BENCH_DIR)/large.c $(BUILD_DIR)/$(LIB_NAME)
+	@mkdir -p $(BUILD_DIR)
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -L$(BUILD_DIR) -lreclaim -lpthread -o $@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(BUILD_DIR)
