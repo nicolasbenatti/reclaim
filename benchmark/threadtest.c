@@ -1,0 +1,143 @@
+// === threadtest ===
+// Each benchmark iteration is one alloc or free decision.
+// Build: make bench
+// Run:   ./build/bench_threadtest
+
+#include "common.h"
+#include "reclaim.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+// Config parameters
+#define MAX_THREADS 32
+#define MAX_PER_THREAD_ALLOCS 8192
+#define CHUNK_SIZE_BYTES 128
+
+typedef struct {
+  int is_glibc;
+  size_t t_idx;
+  size_t n_threads;
+  size_t n_iter;     // No. of loop iterations
+  size_t n_chks;     // No. of chunks to allocate
+  size_t chk_size;   // Size of each chunk
+  size_t work_coeff; // Amount of work to perform
+} thread_data;
+
+static void *run_benchmark(void *__data) {
+  thread_data *data = (thread_data *)__data;
+
+  uint8_t *chunks[MAX_PER_THREAD_ALLOCS];
+
+  for (int64_t j = 0; j < data->n_iter; j++) {
+    for (int64_t i = 0; i < (data->n_chks / data->n_threads); i++) {
+      // Alloc
+      chunks[i] = (uint8_t *)((data->is_glibc) ? malloc(data->chk_size)
+                                               : recl_malloc(data->chk_size));
+
+      // Do work
+      for (volatile int64_t d = 0; d < data->work_coeff; d++) {
+        volatile int64_t f = 1;
+        f = f + f;
+        f = f * f;
+        f = f + f;
+        f = f * f;
+      }
+    }
+
+    for (int64_t i = 0; i < (data->n_chks / data->n_threads); i++) {
+      (data->is_glibc) ? free(chunks[i]) : recl_free(chunks[i]);
+
+      for (volatile int64_t d = 0; d < data->work_coeff; d++) {
+        volatile int64_t f = 1;
+        f = f + f;
+        f = f * f;
+        f = f + f;
+        f = f * f;
+      }
+    }
+  }
+
+  return (void *)0;
+}
+
+int main(int argc, char **argv) {
+  int nthreads = 1;
+  int64_t n_iter = 50;
+  int64_t n_chks = 30000;
+  int64_t chk_size = CHUNK_SIZE_BYTES;
+  int64_t work = 0;
+  int is_glibc = 0;
+
+  for (int i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
+      nthreads = atoi(argv[++i]);
+    } else if (strcmp(argv[i], "--iterations") == 0 && i + 1 < argc) {
+      n_iter = atoll(argv[++i]);
+    } else if (strcmp(argv[i], "--chunks") == 0 && i + 1 < argc) {
+      n_chks = atoll(argv[++i]);
+    } else if (strcmp(argv[i], "--chunk-size") == 0 && i + 1 < argc) {
+      chk_size = atoll(argv[++i]);
+    } else if (strcmp(argv[i], "--work") == 0 && i + 1 < argc) {
+      work = atoll(argv[++i]);
+    } else if (strcmp(argv[i], "--glibc") == 0) {
+      is_glibc = 1;
+    } else {
+      fprintf(stderr,
+              "Usage: %s [--threads N] [--iterations N] [--chunks N]"
+              " [--chunk-size N] [--work N] [--glibc]\n",
+              argv[0]);
+      return 1;
+    }
+  }
+
+  if (nthreads < 1 || nthreads > MAX_THREADS) {
+    fprintf(stderr, "error: --threads must be between 1 and %d\n", MAX_THREADS);
+    return 1;
+  }
+
+  if (n_chks / nthreads > MAX_PER_THREAD_ALLOCS) {
+    fprintf(stderr,
+            "error: chunks/threads exceeds MAX_PER_THREAD_ALLOCS (%d)\n",
+            MAX_PER_THREAD_ALLOCS);
+    return 1;
+  }
+
+  static pthread_t threads[MAX_THREADS];
+  thread_data args[MAX_THREADS];
+
+  recl_alloc_main_heap();
+
+  struct timespec wall0, wall1;
+  clock_gettime(CLOCK_MONOTONIC, &wall0);
+
+  for (int i = 0; i < nthreads; i++) {
+    args[i].is_glibc = is_glibc;
+    args[i].t_idx = (size_t)i;
+    args[i].n_threads = (size_t)nthreads;
+    args[i].n_iter = (size_t)n_iter;
+    args[i].n_chks = (size_t)n_chks;
+    args[i].chk_size = (size_t)chk_size;
+    args[i].work_coeff = (size_t)work;
+    pthread_create(&threads[i], NULL, run_benchmark, &args[i]);
+  }
+  for (int i = 0; i < nthreads; i++)
+    pthread_join(threads[i], NULL);
+
+  clock_gettime(CLOCK_MONOTONIC, &wall1);
+
+  double wall_us = ((double)(wall1.tv_sec - wall0.tv_sec) * 1e9 +
+                    (double)(wall1.tv_nsec - wall0.tv_nsec)) /
+                   1e3;
+  double us_per_op = wall_us / (double)n_iter;
+
+  char label[128];
+  bench_print_header();
+  snprintf(label, sizeof(label), "%s/threads:%d",
+           is_glibc ? "BM_threadtest_glibc" : "BM_threadtest", nthreads);
+  printf("%-45s %10.3f us %12lld\n", label, us_per_op, (long long)n_iter);
+
+  recl_free_main_heap();
+  return 0;
+}

@@ -58,6 +58,10 @@ $(BUILD_DIR)/bench_malloc_large: $(BENCH_DIR)/large.c $(BUILD_DIR)/$(LIB_NAME)
 	@mkdir -p $(BUILD_DIR)
 	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -L$(BUILD_DIR) -lreclaim -lpthread -o $@
 
+$(BUILD_DIR)/bench_threadtest: $(BENCH_DIR)/threadtest.c $(BUILD_DIR)/$(LIB_NAME)
+	@mkdir -p $(BUILD_DIR)
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -L$(BUILD_DIR) -lreclaim -lpthread -o $@
+
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(BUILD_DIR)
 	@$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
