@@ -50,7 +50,7 @@ typedef struct {
   int count;
 } central_bin_t;
 
-// Map a request size (1..LARGE_THRESHOLD) to a size-class index [0..11]
+// Map a request size to a size-class index
 int size_to_class(size_t size);
 
 // Map a size-class index to the actual allocation size

@@ -2,14 +2,14 @@
 
 /*
  * Size-class table:
- *   class 0  ->     16 B
- *   class 1  ->     32 B
- *   class 2  ->     64 B
+ *   class 0  ->  16 B
+ *   class 1  ->  32 B
+ *   class 2  ->  64 B
  *   ...
- *   class 11 ->  32768 B  (32 KB)
- *   class 12 ->  65536 B  (64 KB)
- *   class 13 -> 131072 B (128 KB)
- *   class 14 -> 262144 B (256 KB)
+ *   class 11 ->  32 KiB
+ *   class 12 ->  64 KiB
+ *   class 13 -> 128 KiB
+ *   class 14 -> 256 KiB
  */
 static const size_t class_sizes[NUM_SIZE_CLASSES] = {
     16,   32,   64,    128,   256,   512,    1024,  2048,
