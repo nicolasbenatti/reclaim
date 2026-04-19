@@ -9,6 +9,7 @@ from datetime import datetime
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 
 def main():
@@ -16,6 +17,8 @@ def main():
     parser.add_argument("csv", help="Input CSV file")
     parser.add_argument("--save", metavar="FILE",
                         help="Save plot to PNG file (timestamp appended)")
+    parser.add_argument("--logx", action="store_true",
+                        help="Use logarithmic x axis")
     args = parser.parse_args()
 
     # data[bench_name][(is_glibc, threads)] = throughput
@@ -59,6 +62,10 @@ def main():
         ax.set_title(bench)
         ax.set_xlabel("Threads")
         ax.set_ylabel("Throughput (alloc/s)")
+        if args.logx:
+            ax.set_xscale("log", base=2)
+            ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{int(x)}"))
+            ax.xaxis.set_minor_formatter(ticker.NullFormatter())
         ax.legend()
         ax.grid(True, alpha=0.3)
 
