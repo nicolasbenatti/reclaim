@@ -34,15 +34,16 @@ void backend_init(void) {
 
 void backend_deinit(void) {
   // Walk the scache list and release every span to the OS.
-  span_t *s = scache;
-  while (s) {
-    span_t *next = s->next;
-    munmap(s, SPAN_SIZE);
-    s = next;
+  span_t *runner = scache;
+  while (runner) {
+    span_t *next = runner->next;
+    munmap(runner, SPAN_SIZE);
+    runner = next;
   }
-  scache = NULL;
+  runner = NULL;
   pthread_spin_destroy(&span_lock);
 }
+
 /**
  * Allocate a span.
  *
@@ -119,6 +120,7 @@ span_t *span_alloc(int size_class) {
   }
   pthread_spin_unlock(&span_lock);
 
+  // Push to scache
   if (!s) {
     s = (span_t *)mmap_span();
     if (!s)
