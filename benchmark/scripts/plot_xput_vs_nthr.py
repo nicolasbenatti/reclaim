@@ -13,7 +13,7 @@ import matplotlib.ticker as ticker
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Plot MaxRSS vs. threads")
+    parser = argparse.ArgumentParser(description="Plot throughput vs. threads")
     parser.add_argument("csv", help="Input CSV file")
     parser.add_argument("--save", metavar="FILE",
                         help="Save plot to PNG file (timestamp appended)")
@@ -30,7 +30,7 @@ def main():
             bench = row["benchmark"]
             threads = int(row["n_threads"])
             is_glibc = int(row["is_glibc"])
-            throughput = float(row["peak_rss_kb"])
+            throughput = float(row["throughput_alloc_per_s"])
             data[bench][(is_glibc, threads)] = throughput
 
     if not data:
@@ -73,7 +73,7 @@ def main():
     for idx in range(n, rows * cols):
         axes[idx // cols][idx % cols].set_visible(False)
 
-    fig.suptitle("Max RSS vs. Thread count", fontsize=14, fontweight="bold")
+    fig.suptitle("Throughput vs. Thread Count", fontsize=14, fontweight="bold")
     fig.tight_layout()
 
     if args.save:

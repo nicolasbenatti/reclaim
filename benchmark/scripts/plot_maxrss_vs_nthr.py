@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot throughput vs. chunk size from benchmark CSV output."""
+"""Plot throughput vs. thread count from benchmark CSV output."""
 
 import argparse
 import csv
@@ -12,16 +12,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 
-def find_column(fieldnames, prefix):
-    """Find the first column name starting with prefix."""
-    for name in fieldnames:
-        if name.startswith(prefix):
-            return name
-    return None
-
-
 def main():
-    parser = argparse.ArgumentParser(description="Plot throughput vs. chunk size from benchmark CSV")
+    parser = argparse.ArgumentParser(description="Plot MaxRSS vs. threads")
     parser.add_argument("csv", help="Input CSV file")
     parser.add_argument("--save", metavar="FILE",
                         help="Save plot to PNG file (timestamp appended)")
@@ -29,22 +21,17 @@ def main():
                         help="Use logarithmic x axis")
     args = parser.parse_args()
 
-    # data[bench_name][(is_glibc, chunk_size)] = throughput
+    # data[bench_name][(is_glibc, threads)] = throughput
     data = defaultdict(dict)
-    col_name = None
 
     with open(args.csv) as f:
         reader = csv.DictReader(f)
-        col_name = find_column(reader.fieldnames, "chunk_size")
-        if not col_name:
-            print("No column starting with 'chunk_size' found in CSV.", file=sys.stderr)
-            sys.exit(1)
         for row in reader:
             bench = row["benchmark"]
-            chunk_size = int(row[col_name])
+            threads = int(row["n_threads"])
             is_glibc = int(row["is_glibc"])
-            throughput = float(row["throughput_alloc_per_s"])
-            data[bench][(is_glibc, chunk_size)] = throughput
+            throughput = float(row["peak_rss_kb"])
+            data[bench][(is_glibc, threads)] = throughput
 
     if not data:
         print("No data found in CSV.", file=sys.stderr)
@@ -61,19 +48,20 @@ def main():
         ax = axes[idx // cols][idx % cols]
         entries = data[bench]
 
+        # Separate reclaim (0) and glibc (1)
         reclaim_pts = sorted((t, v) for (g, t), v in entries.items() if g == 0)
         glibc_pts = sorted((t, v) for (g, t), v in entries.items() if g == 1)
 
         if reclaim_pts:
-            xs, ys = zip(*reclaim_pts)
-            ax.plot(xs, ys, "o-", label="reclaim", color="#1f77b4")
+            threads_r, tp_r = zip(*reclaim_pts)
+            ax.plot(threads_r, tp_r, "o-", label="reclaim", color="#1f77b4")
         if glibc_pts:
-            xs, ys = zip(*glibc_pts)
-            ax.plot(xs, ys, "s--", label="glibc", color="#ff7f0e")
+            threads_g, tp_g = zip(*glibc_pts)
+            ax.plot(threads_g, tp_g, "s--", label="glibc", color="#ff7f0e")
 
         ax.set_title(bench)
-        ax.set_xlabel(f"Chunk Size ({col_name})")
-        ax.set_ylabel("Throughput (alloc/s)")
+        ax.set_xlabel("Threads")
+        ax.set_ylabel("Max resident set size (KiB)")
         if args.logx:
             ax.set_xscale("log", base=2)
             ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{int(x)}"))
@@ -81,10 +69,11 @@ def main():
         ax.legend()
         ax.grid(True, alpha=0.3)
 
+    # Hide unused subplots
     for idx in range(n, rows * cols):
         axes[idx // cols][idx % cols].set_visible(False)
 
-    fig.suptitle("Throughput vs. Chunk Size", fontsize=14, fontweight="bold")
+    fig.suptitle("Max RSS vs. Thread count", fontsize=14, fontweight="bold")
     fig.tight_layout()
 
     if args.save:
