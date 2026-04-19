@@ -124,8 +124,13 @@ int main(int argc, char **argv) {
            is_glibc ? "glibc" : "reclaim");
   printf("%-45s %10.3f us %12lld %20.3f\n", label, us_per_op, (long long)n_iter,
          throughput);
-  bench_csv_append(csv_path, "malloc_large", us_per_op, (long long)n_iter,
-                   throughput, is_glibc, nthreads);
+  FILE *csv = bench_csv_open(csv_path,
+      "benchmark,n_threads,iterations,is_glibc,time_us,throughput_alloc_per_s");
+  if (csv) {
+    fprintf(csv, "malloc_large,%d,%lld,%d,%.3f,%.3f\n",
+            nthreads, (long long)n_iter, is_glibc, us_per_op, throughput);
+    fclose(csv);
+  }
 
   recl_free_main_heap();
 

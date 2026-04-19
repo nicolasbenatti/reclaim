@@ -153,8 +153,15 @@ int main(int argc, char **argv) {
            is_glibc ? "glibc" : "reclaim");
   printf("%-45s %10.3f us %12lld %20.3f\n", label, us_per_op, (long long)n_iter,
          throughput);
-  bench_csv_append(csv_path, "threadtest", us_per_op, (long long)n_iter,
-                   throughput, is_glibc, nthreads);
+  FILE *csv = bench_csv_open(csv_path,
+      "benchmark,n_threads,iterations,is_glibc,chunks_per_thread,chunk_size,work,time_us,throughput_alloc_per_s");
+  if (csv) {
+    fprintf(csv, "threadtest,%d,%lld,%d,%lld,%lld,%lld,%.3f,%.3f\n",
+            nthreads, (long long)n_iter, is_glibc,
+            (long long)n_chks / nthreads, (long long)chk_size, (long long)work,
+            us_per_op, throughput);
+    fclose(csv);
+  }
 
   recl_free_main_heap();
   return 0;

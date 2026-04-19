@@ -247,8 +247,17 @@ int main(int argc, char **argv) {
            is_glibc ? "glibc" : "reclaim");
   printf("%-45s %10.3f us %12lld %20.3f\n", label, us_per_op, (long long)n_iter,
          throughput);
-  bench_csv_append(csv_path, "larson", us_per_op, (long long)n_iter, throughput,
-                   is_glibc, nthreads);
+  FILE *csv = bench_csv_open(
+      csv_path,
+      "benchmark,n_threads,iterations,is_glibc,chunks_per_thread,chunk_size_"
+      "max,chunk_size_min,sleep_s,time_us,throughput_alloc_per_s");
+  if (csv) {
+    fprintf(csv, "larson,%d,%lld,%d,%lld,%lld,%lld,%ld,%.3f,%.3f\n", nthreads,
+            (long long)n_iter, is_glibc, (long long)chks_per_thread,
+            (long long)chk_size_min, (long long)chk_size_max, sleep_cnt,
+            us_per_op, throughput);
+    fclose(csv);
+  }
 
   if (!is_glibc)
     recl_free_main_heap();

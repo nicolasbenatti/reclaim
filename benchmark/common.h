@@ -29,11 +29,9 @@ static void bench_print_header(void) {
          "--------------------------------------------------\n");
 }
 
-static void bench_csv_append(const char *csv_path, const char *label,
-                             double us_per_op, long long iterations,
-                             double throughput, int is_glibc, int n_threads) {
+static FILE *bench_csv_open(const char *csv_path, const char *header) {
   if (!csv_path)
-    return;
+    return NULL;
   int write_header = 0;
   FILE *f = fopen(csv_path, "r");
   if (!f)
@@ -43,13 +41,11 @@ static void bench_csv_append(const char *csv_path, const char *label,
   f = fopen(csv_path, "a");
   if (!f) {
     fprintf(stderr, "warning: cannot open %s for writing\n", csv_path);
-    return;
+    return NULL;
   }
   if (write_header)
-    fprintf(f, "benchmark,time_us,iterations,throughput_alloc_per_s,is_glibc,n_threads\n");
-  fprintf(f, "%s,%.3f,%lld,%.3f,%d,%d\n", label, us_per_op, iterations,
-          throughput, is_glibc, n_threads);
-  fclose(f);
+    fprintf(f, "%s\n", header);
+  return f;
 }
 
 #endif // BENCH_COMMON_H
