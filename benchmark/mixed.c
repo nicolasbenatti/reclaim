@@ -18,7 +18,7 @@
 #define _rand xorshift64
 
 // Config parameters
-#define MAX_THREADS 32
+#define MAX_THREADS 128
 #define MAX_LIVE 256
 
 typedef struct {

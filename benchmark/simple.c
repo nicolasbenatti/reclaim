@@ -14,7 +14,7 @@
 #define _rand xorshift64
 
 // Config parameters
-#define MAX_THREADS 32
+#define MAX_THREADS 128
 #define CHUNK_SIZE_BYTES 128
 
 typedef struct {

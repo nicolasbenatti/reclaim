@@ -15,7 +15,7 @@
 #define _rand xorshift64
 
 // Config parameters
-#define MAX_THREADS 100
+#define MAX_THREADS 128
 #define MAX_BLOCKS 20000000
 #define MAX_PER_THREAD_ALLOCS 8192
 #define CHUNK_SIZE_BYTES 64

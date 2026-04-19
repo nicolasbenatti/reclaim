@@ -11,7 +11,7 @@
 #include <time.h>
 
 // Config parameters
-#define MAX_THREADS 32
+#define MAX_THREADS 128
 #define MAX_PER_THREAD_ALLOCS 65536
 #define CHUNK_SIZE_BYTES 64
 
