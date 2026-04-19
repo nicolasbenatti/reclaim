@@ -44,10 +44,10 @@ void *run_benchmark(void *__data) {
     size_t rnd_size =
         MALLOC_LARGE_MIN_BUFSIZE +
         _rand(&rng) % (MALLOC_LARGE_MAX_BUFSIZE - MALLOC_LARGE_MIN_BUFSIZE);
-    if (live[buf_idx] != NULL) {
-      (data->is_glibc) ? free(live[buf_idx]) : recl_free(live[buf_idx]);
-      data->stats.n_frees++;
-    }
+    // if (live[buf_idx] != NULL) {
+    //   (data->is_glibc) ? free(live[buf_idx]) : recl_free(live[buf_idx]);
+    //   data->stats.n_frees++;
+    // }
     live[buf_idx] =
         (char *)((data->is_glibc) ? malloc(rnd_size) : recl_malloc(rnd_size));
     data->stats.n_allocs++;
