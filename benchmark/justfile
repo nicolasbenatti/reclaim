@@ -79,16 +79,16 @@ quick:
     just larson   4 50 100 10 500 3 --csv "$csv"
     just larson   4 50 100 10 500 3 --csv "$csv" --glibc
 
-# Thread scaling - run each benchmark at 1,2,4,8,16 threads
+# Allocator scalability - run at increasing no. of threads
 [group('presets')]
-scaling iterations="500000":
+scalability iterations="500000":
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out/out_scaling_$(date +%Y%m%d_%H%M%S).csv"
+    csv="out/out_scalability_$(date +%Y%m%d_%H%M%S).csv"
     mkdir -p out
     rm -f "$csv"
     echo "=== Thread Scaling ==="
-    for t in 1 2 4 8 16; do
+    for t in 1 2 4 8 16 32 64; do
         echo ""
         echo "--- simple / threads=$t ---"
         just simple   $t {{iterations}} --csv "$csv"
