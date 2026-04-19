@@ -47,8 +47,12 @@ thread_data args[MAX_THREADS];
 
 static void warmup(char **blkp, int *blksize, size_t n_chks,
                    size_t chk_size_min, size_t chk_size_max, uint64_t *rng) {
+  uint64_t size;
   for (int64_t i = 0; i < n_chks; i++) {
-    uint64_t size = chk_size_min + _rand(rng) % (chk_size_max - chk_size_min);
+    if (chk_size_min == chk_size_max)
+      size = chk_size_min;
+    else
+      size = chk_size_min + _rand(rng) % (chk_size_max - chk_size_min);
     // Pre-allocate random-size chunks
     blkp[i] = (char *)((is_glibc) ? malloc(size) : recl_malloc(size));
     blksize[i] = size;
@@ -68,7 +72,11 @@ static void warmup(char **blkp, int *blksize, size_t n_chks,
   for (uint64_t i = 0; i < 4 * n_chks; i++) {
     victim = _rand(rng) % n_chks;
     (is_glibc) ? free(blkp[victim]) : recl_free(blkp[victim]);
-    uint64_t size = chk_size_min + _rand(rng) % (chk_size_max - chk_size_min);
+
+    if (chk_size_min == chk_size_max)
+      size = chk_size_max;
+    else
+      size = chk_size_min + _rand(rng) % (chk_size_max - chk_size_min);
     blkp[victim] = (char *)((is_glibc) ? malloc(size) : recl_malloc(size));
     blksize[victim] = size;
   }
@@ -89,13 +97,17 @@ static void *run_benchmark(void *__data) {
   data->stats.n_frees = 0;
 
   // Perform random replacements
+  uint64_t size;
   for (uint64_t i = 0; i < data->n_allocs; i++) {
     victim = _rand(&rng) % data->chks_per_thread;
     (data->is_glibc) ? free(data->array[victim])
                      : recl_free(data->array[victim]);
     data->stats.n_frees++;
-    uint64_t size = data->chk_size_min +
-                    _rand(&rng) % (data->chk_size_max - data->chk_size_min);
+    if (data->chk_size_min == data->chk_size_max)
+      size = data->chk_size_min;
+    else
+      size = data->chk_size_min +
+             _rand(&rng) % (data->chk_size_max - data->chk_size_min);
     data->array[victim] =
         (char *)((data->is_glibc) ? malloc(size) : recl_malloc(size));
     data->stats.n_allocs++;
