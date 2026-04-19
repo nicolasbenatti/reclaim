@@ -7,6 +7,11 @@
 
 #include "reclaim.h"
 
+typedef struct {
+  uint64_t n_allocs;
+  uint64_t n_frees;
+} stats_t;
+
 static inline uint64_t xorshift64(uint64_t *state) {
   // glibc's rand() has shared state, therefore it is not thread-safe.
   uint64_t x = *state;
@@ -18,10 +23,10 @@ static inline uint64_t xorshift64(uint64_t *state) {
 }
 
 static void bench_print_header(void) {
-  printf("%-45s %10s    %12s %14s\n", "Benchmark", "Time", "Iterations",
-         "Items/s");
+  printf("%-45s %10s    %12s %20s\n", "Benchmark", "Time", "Iterations",
+         "throughput (allocs/s)");
   printf("-------------------------------------------"
-         "-------------------------------------------\n");
+         "---------------------------------------------------\n");
 }
 
 #endif // BENCH_COMMON_H

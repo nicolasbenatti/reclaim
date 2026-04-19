@@ -37,6 +37,7 @@ typedef struct {
   int *blksize;           // Ptr to block size tracking array
   char **array;           // Ptr to chunks to operate on
   volatile int finished;  // Signals thread completion
+  stats_t stats;
 } thread_data;
 
 static pthread_t threads[MAX_THREADS];
@@ -84,16 +85,20 @@ static void *run_benchmark(void *__data) {
   int victim;
 
   data->finished = 0;
+  data->stats.n_allocs = 0;
+  data->stats.n_frees = 0;
 
   // Perform random replacements
   for (uint64_t i = 0; i < data->n_allocs; i++) {
     victim = _rand(&rng) % data->chks_per_thread;
     (data->is_glibc) ? free(data->array[victim])
                      : recl_free(data->array[victim]);
+    data->stats.n_frees++;
     uint64_t size = data->chk_size_min +
                     _rand(&rng) % (data->chk_size_max - data->chk_size_min);
     data->array[victim] =
         (char *)((data->is_glibc) ? malloc(size) : recl_malloc(size));
+    data->stats.n_allocs++;
     data->blksize[victim] = size;
 
     // Do work
@@ -212,12 +217,19 @@ int main(int argc, char **argv) {
                     (double)(wall1.tv_nsec - wall0.tv_nsec)) /
                    1e3;
   double us_per_op = wall_us / (double)n_iter;
+  double wall_s = wall_us / 1e6;
+
+  uint64_t total_allocs = 0;
+  for (int i = 0; i < nthreads; i++)
+    total_allocs += args[i].stats.n_allocs;
+  double throughput = (wall_s > 0.0) ? (double)total_allocs / wall_s : 0.0;
 
   char label[128];
   bench_print_header();
   snprintf(label, sizeof(label), "%s/threads:%d",
            is_glibc ? "BM_larson_glibc" : "BM_larson", nthreads);
-  printf("%-45s %10.3f us %12lld\n", label, us_per_op, (long long)n_iter);
+  printf("%-45s %10.3f us %12lld %.3f\n", label, us_per_op, (long long)n_iter,
+         throughput);
 
   if (!is_glibc)
     recl_free_main_heap();

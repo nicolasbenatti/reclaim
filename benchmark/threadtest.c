@@ -23,6 +23,7 @@ typedef struct {
   size_t n_chks;     // No. of chunks to allocate
   size_t chk_size;   // Size of each chunk
   size_t work_coeff; // Amount of work to perform
+  stats_t stats;
 } thread_data;
 
 static void *run_benchmark(void *__data) {
@@ -30,11 +31,15 @@ static void *run_benchmark(void *__data) {
 
   uint8_t *chunks[MAX_PER_THREAD_ALLOCS];
 
+  data->stats.n_allocs = 0;
+  data->stats.n_frees = 0;
+
   for (int64_t j = 0; j < data->n_iter; j++) {
     for (int64_t i = 0; i < (data->n_chks / data->n_threads); i++) {
       // Alloc
       chunks[i] = (uint8_t *)((data->is_glibc) ? malloc(data->chk_size)
                                                : recl_malloc(data->chk_size));
+      data->stats.n_allocs++;
 
       // Do work
       for (volatile int64_t d = 0; d < data->work_coeff; d++) {
@@ -48,6 +53,7 @@ static void *run_benchmark(void *__data) {
 
     for (int64_t i = 0; i < (data->n_chks / data->n_threads); i++) {
       (data->is_glibc) ? free(chunks[i]) : recl_free(chunks[i]);
+      data->stats.n_frees++;
 
       for (volatile int64_t d = 0; d < data->work_coeff; d++) {
         volatile int64_t f = 1;
@@ -131,12 +137,19 @@ int main(int argc, char **argv) {
                     (double)(wall1.tv_nsec - wall0.tv_nsec)) /
                    1e3;
   double us_per_op = wall_us / (double)n_iter;
+  double wall_s = wall_us / 1e6;
+
+  uint64_t total_allocs = 0;
+  for (int i = 0; i < nthreads; i++)
+    total_allocs += args[i].stats.n_allocs;
+  double throughput = (wall_s > 0.0) ? (double)total_allocs / wall_s : 0.0;
 
   char label[128];
   bench_print_header();
   snprintf(label, sizeof(label), "%s/threads:%d",
            is_glibc ? "BM_threadtest_glibc" : "BM_threadtest", nthreads);
-  printf("%-45s %10.3f us %12lld\n", label, us_per_op, (long long)n_iter);
+  printf("%-45s %10.3f us %12lld %.3f\n", label, us_per_op, (long long)n_iter,
+         throughput);
 
   recl_free_main_heap();
   return 0;

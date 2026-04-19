@@ -24,6 +24,7 @@ typedef struct {
   int is_glibc;
   size_t t_idx;
   size_t n_iter;
+  stats_t stats;
 } thread_data;
 
 void *run_benchmark(void *__data) {
@@ -31,6 +32,9 @@ void *run_benchmark(void *__data) {
 
   const int id = data->t_idx;
   uint64_t rng = (uint64_t)id * 6364136223846793005ULL + 1;
+
+  data->stats.n_allocs = 0;
+  data->stats.n_frees = 0;
 
   char *live[MALLOC_LARGE_MAX_LIVE];
   memset(live, 0, sizeof(live));
@@ -42,9 +46,11 @@ void *run_benchmark(void *__data) {
         _rand(&rng) % (MALLOC_LARGE_MAX_BUFSIZE - MALLOC_LARGE_MIN_BUFSIZE);
     if (live[buf_idx] != NULL) {
       (data->is_glibc) ? free(live[buf_idx]) : recl_free(live[buf_idx]);
+      data->stats.n_frees++;
     }
     live[buf_idx] =
         (char *)((data->is_glibc) ? malloc(rnd_size) : recl_malloc(rnd_size));
+    data->stats.n_allocs++;
   }
 
   // Free all remaining memory
@@ -100,12 +106,19 @@ int main(int argc, char **argv) {
                     (double)(wall1.tv_nsec - wall0.tv_nsec)) /
                    1e3;
   double us_per_op = wall_us / (double)n_iter;
+  double wall_s = wall_us / 1e6;
+
+  uint64_t total_allocs = 0;
+  for (int i = 0; i < nthreads; i++)
+    total_allocs += args[i].stats.n_allocs;
+  double throughput = (wall_s > 0.0) ? (double)total_allocs / wall_s : 0.0;
 
   char label[128];
   bench_print_header();
   snprintf(label, sizeof(label), "%s/threads:%d",
            is_glibc ? "BM_malloc_large_glibc" : "BM_malloc_large", nthreads);
-  printf("%-45s %10.3f us %12lld\n", label, us_per_op, (long long)n_iter);
+  printf("%-45s %10.3f us %12lld %.3f\n", label, us_per_op, (long long)n_iter,
+         throughput);
 
   recl_free_main_heap();
 
