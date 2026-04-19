@@ -19,7 +19,6 @@ typedef struct span {
   uint32_t size_class; // index into size-class table
   uint32_t size;
   uint32_t total_objects;  // total objects carved from span
-  atomic_uint alloc_count; // Objects currently outstanding
   void *base;
   struct span *next; // relative scache
 } span_t;

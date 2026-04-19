@@ -95,7 +95,6 @@ static void span_init(span_t *s, int size_class) {
   uintptr_t span_end = (uintptr_t)s + SPAN_SIZE;
   uint32_t count = (uint32_t)((span_end - base) / obj_size);
   s->total_objects = count;
-  atomic_store_explicit(&s->alloc_count, 0, memory_order_relaxed);
 
   // Build a linked free list through the objects, by storing the next
   // ptr in the first 4 bytes of a free object.
