@@ -250,13 +250,14 @@ int main(int argc, char **argv) {
          (long long)n_iter, throughput, rss_kb);
   FILE *csv = bench_csv_open(
       csv_path,
-      "benchmark,n_threads,iterations,is_glibc,chunks_per_thread,chunk_size_"
-      "max,chunk_size_min,sleep_s,time_us,throughput_alloc_per_s,peak_rss_kb");
+      "benchmark,n_threads,iterations,is_glibc,time_us,throughput_alloc_per_s,"
+      "peak_rss_kb,chunks_per_thread,chunk_size_min,chunk_size_max,sleep_s");
   if (csv) {
-    fprintf(csv, "larson,%d,%lld,%d,%lld,%lld,%lld,%ld,%.3f,%.3f,%ld\n", nthreads,
-            (long long)n_iter, is_glibc, (long long)chks_per_thread,
-            (long long)chk_size_min, (long long)chk_size_max, sleep_cnt,
-            us_per_op, throughput, rss_kb);
+    fprintf(csv, "larson,%d,%lld,%d,%.3f,%.3f,%ld,%lld,%lld,%lld,%ld\n",
+            nthreads, (long long)n_iter, is_glibc,
+            us_per_op, throughput, rss_kb,
+            (long long)chks_per_thread, (long long)chk_size_min,
+            (long long)chk_size_max, sleep_cnt);
     fclose(csv);
   }
 
