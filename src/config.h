@@ -37,10 +37,4 @@
 // Magic number for large allocations.
 #define LARGE_MAGIC ((uint32_t)0x4C524543)
 
-typedef enum {
-  ERR_OOMEM,
-  ERR_INVALID,
-  ERR_FAIL,
-} errcode_t;
-
 #endif // CONFIG_H
