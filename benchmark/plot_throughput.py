@@ -3,7 +3,9 @@
 
 import argparse
 import csv
+import os
 import sys
+from datetime import datetime
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
@@ -12,7 +14,8 @@ import matplotlib.pyplot as plt
 def main():
     parser = argparse.ArgumentParser(description="Plot throughput vs. threads from benchmark CSV")
     parser.add_argument("csv", help="Input CSV file")
-    parser.add_argument("--save", metavar="FILE", help="Save plot to PNG file instead of showing")
+    parser.add_argument("--save", metavar="FILE",
+                        help="Save plot to PNG file (timestamp appended)")
     args = parser.parse_args()
 
     # data[bench_name][(is_glibc, threads)] = throughput
@@ -67,8 +70,12 @@ def main():
     fig.tight_layout()
 
     if args.save:
-        fig.savefig(f"plots/{args.save}", dpi=150)
-        print(f"Saved to plots/{args.save}")
+        os.makedirs("plots", exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{args.save}_{ts}.png"
+        path = os.path.join("plots", filename)
+        fig.savefig(path, dpi=150)
+        print(f"Saved to {path}")
     else:
         plt.show()
 

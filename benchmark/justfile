@@ -6,7 +6,7 @@ set quiet
 
 root_dir    := justfile_directory() / ".."
 build_dir   := root_dir / "build"
-results_dir := justfile_directory() / "results"
+results_dir := justfile_directory() / "out"
 timestamp   := `date +%Y%m%d_%H%M%S`
 
 # Build
@@ -59,7 +59,8 @@ larson threads="4" iterations="50" chunks_per_thread="100" min_size="10" max_siz
 quick:
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out_quick.csv"
+    csv="out/out_quick_$(date +%Y%m%d_%H%M%S).csv"
+    mkdir -p out
     rm -f "$csv"
     echo "=== Quick smoke test ==="
     echo ""
@@ -83,7 +84,8 @@ quick:
 scaling iterations="500000":
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out_scaling.csv"
+    csv="out/out_scaling_$(date +%Y%m%d_%H%M%S).csv"
+    mkdir -p out
     rm -f "$csv"
     echo "=== Thread Scaling ==="
     for t in 1 2 4 8 16; do
@@ -114,7 +116,8 @@ scaling iterations="500000":
 full:
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out_full.csv"
+    csv="out/out_full_$(date +%Y%m%d_%H%M%S).csv"
+    mkdir -p out
     rm -f "$csv"
     echo "=== Full benchmark suite ==="
     echo ""
@@ -138,7 +141,8 @@ full:
 stress:
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out_stress.csv"
+    csv="out/out_stress_$(date +%Y%m%d_%H%M%S).csv"
+    mkdir -p out
     rm -f "$csv"
     echo "=== Stress test ==="
     echo ""
@@ -162,7 +166,8 @@ stress:
 larson-sweep threads="8" sleep="10":
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out_larson-sweep.csv"
+    csv="out/out_larson-sweep_$(date +%Y%m%d_%H%M%S).csv"
+    mkdir -p out
     rm -f "$csv"
     echo "=== Larson parameter sweep ==="
     for cpt in 50 100 500 1000; do
@@ -180,7 +185,8 @@ larson-sweep threads="8" sleep="10":
 threadtest-sweep threads="8":
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out_threadtest-sweep.csv"
+    csv="out/out_threadtest-sweep_$(date +%Y%m%d_%H%M%S).csv"
+    mkdir -p out
     rm -f "$csv"
     echo "=== Threadtest parameter sweep ==="
     for cs in 16 64 256 1024; do
