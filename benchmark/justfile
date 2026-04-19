@@ -197,28 +197,3 @@ threadtest-sweep threads="8":
             just threadtest {{threads}} 50 30000 $cs $w --csv "$csv" --glibc
         done
     done
-
-# Results Collection
-
-# Run a preset and save output to CSV file
-[group('results')]
-record preset *args="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    mkdir -p {{results_dir}}
-    outfile="{{results_dir}}/{{preset}}_{{timestamp}}.txt"
-    echo "Recording preset '{{preset}}' -> $outfile"
-    echo "# reclaim benchmark: {{preset}}" > "$outfile"
-    echo "# date: $(date -Iseconds)" >> "$outfile"
-    echo "# host: $(hostname)" >> "$outfile"
-    echo "# kernel: $(uname -r)" >> "$outfile"
-    echo "# args: {{args}}" >> "$outfile"
-    echo "" >> "$outfile"
-    just {{preset}} {{args}} 2>&1 | tee -a "$outfile"
-    echo ""
-    echo "Results saved to $outfile"
-
-# List all saved results
-[group('results')]
-results:
-    @ls -lht {{results_dir}}/ 2>/dev/null || echo "No results yet. Run: just record <preset>"
