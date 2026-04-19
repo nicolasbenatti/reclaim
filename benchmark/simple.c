@@ -42,17 +42,22 @@ static void *run_benchmark(void *__data) {
 
 int main(int argc, char **argv) {
   int nthreads, n_iter, is_glibc = 0;
+  const char *csv_path = NULL;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
       nthreads = atoi(argv[++i]);
     } else if (strcmp(argv[i], "--iterations") == 0 && i + 1 < argc) {
       n_iter = atoll(argv[++i]);
+    } else if (strcmp(argv[i], "--csv") == 0 && i + 1 < argc) {
+      csv_path = argv[++i];
     } else if (strcmp(argv[i], "--glibc") == 0) {
       is_glibc = 1;
     } else {
-      fprintf(stderr, "Usage: %s [--threads N] [--iterations N] [--glibc]\n",
-              argv[0]);
+      fprintf(
+          stderr,
+          "Usage: %s [--threads N] [--iterations N] [--csv FILE] [--glibc]\n",
+          argv[0]);
       return 1;
     }
   }
@@ -94,10 +99,12 @@ int main(int argc, char **argv) {
 
   char label[128];
   bench_print_header();
-  snprintf(label, sizeof(label), "%s/threads:%d",
-           is_glibc ? "BM_simple_glibc" : "BM_simple", nthreads);
-  printf("%-45s %10.3f us %12lld %.3f\n", label, us_per_op, (long long)n_iter,
+  snprintf(label, sizeof(label), "%s/threads:%d/%s", "simple", nthreads,
+           is_glibc ? "glibc" : "reclaim");
+  printf("%-45s %10.3f us %12lld %20.3f\n", label, us_per_op, (long long)n_iter,
          throughput);
+  bench_csv_append(csv_path, "simple", us_per_op, (long long)n_iter, throughput,
+                   is_glibc, nthreads);
 
   recl_free_main_heap();
 

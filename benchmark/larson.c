@@ -132,6 +132,8 @@ int main(int argc, char **argv) {
   int64_t chk_size_max = 500;
   long sleep_cnt = 10; // runtime in seconds
 
+  const char *csv_path = NULL;
+
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
       nthreads = atoi(argv[++i]);
@@ -145,13 +147,16 @@ int main(int argc, char **argv) {
       chk_size_max = atoll(argv[++i]);
     } else if (strcmp(argv[i], "--sleep") == 0 && i + 1 < argc) {
       sleep_cnt = atol(argv[++i]);
+    } else if (strcmp(argv[i], "--csv") == 0 && i + 1 < argc) {
+      csv_path = argv[++i];
     } else if (strcmp(argv[i], "--glibc") == 0) {
       is_glibc = 1;
     } else {
-      fprintf(stderr,
-              "Usage: %s [--threads N] [--iterations N] [--chunks-per-thread N]"
-              " [--min-size N] [--max-size N] [--sleep N] [--glibc]\n",
-              argv[0]);
+      fprintf(
+          stderr,
+          "Usage: %s [--threads N] [--iterations N] [--chunks-per-thread N]"
+          " [--min-size N] [--max-size N] [--sleep N] [--csv FILE] [--glibc]\n",
+          argv[0]);
       return 1;
     }
   }
@@ -226,10 +231,12 @@ int main(int argc, char **argv) {
 
   char label[128];
   bench_print_header();
-  snprintf(label, sizeof(label), "%s/threads:%d",
-           is_glibc ? "BM_larson_glibc" : "BM_larson", nthreads);
-  printf("%-45s %10.3f us %12lld %.3f\n", label, us_per_op, (long long)n_iter,
+  snprintf(label, sizeof(label), "%s/threads:%d/%s", "larson", nthreads,
+           is_glibc ? "glibc" : "reclaim");
+  printf("%-45s %10.3f us %12lld %20.3f\n", label, us_per_op, (long long)n_iter,
          throughput);
+  bench_csv_append(csv_path, "larson", us_per_op, (long long)n_iter, throughput,
+                   is_glibc, nthreads);
 
   if (!is_glibc)
     recl_free_main_heap();

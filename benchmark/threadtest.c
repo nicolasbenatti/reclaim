@@ -12,7 +12,7 @@
 
 // Config parameters
 #define MAX_THREADS 32
-#define MAX_PER_THREAD_ALLOCS 8192
+#define MAX_PER_THREAD_ALLOCS 65536
 #define CHUNK_SIZE_BYTES 64
 
 typedef struct {
@@ -75,6 +75,7 @@ int main(int argc, char **argv) {
   int64_t chk_size = CHUNK_SIZE_BYTES;
   int64_t work = 0;
   int is_glibc = 0;
+  const char *csv_path = NULL;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--threads") == 0 && i + 1 < argc) {
@@ -87,12 +88,14 @@ int main(int argc, char **argv) {
       chk_size = atoll(argv[++i]);
     } else if (strcmp(argv[i], "--work") == 0 && i + 1 < argc) {
       work = atoll(argv[++i]);
+    } else if (strcmp(argv[i], "--csv") == 0 && i + 1 < argc) {
+      csv_path = argv[++i];
     } else if (strcmp(argv[i], "--glibc") == 0) {
       is_glibc = 1;
     } else {
       fprintf(stderr,
               "Usage: %s [--threads N] [--iterations N] [--chunks N]"
-              " [--chunk-size N] [--work N] [--glibc]\n",
+              " [--chunk-size N] [--work N] [--csv FILE] [--glibc]\n",
               argv[0]);
       return 1;
     }
@@ -146,10 +149,12 @@ int main(int argc, char **argv) {
 
   char label[128];
   bench_print_header();
-  snprintf(label, sizeof(label), "%s/threads:%d",
-           is_glibc ? "BM_threadtest_glibc" : "BM_threadtest", nthreads);
-  printf("%-45s %10.3f us %12lld %.3f\n", label, us_per_op, (long long)n_iter,
+  snprintf(label, sizeof(label), "%s/threads:%d/%s", "threadtest", nthreads,
+           is_glibc ? "glibc" : "reclaim");
+  printf("%-45s %10.3f us %12lld %20.3f\n", label, us_per_op, (long long)n_iter,
          throughput);
+  bench_csv_append(csv_path, "threadtest", us_per_op, (long long)n_iter,
+                   throughput, is_glibc, nthreads);
 
   recl_free_main_heap();
   return 0;

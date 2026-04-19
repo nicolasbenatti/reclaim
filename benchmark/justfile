@@ -1,0 +1,218 @@
+# reclaim allocator benchmark runner
+# Usage: just --list
+
+set dotenv-load := false
+set quiet
+
+root_dir    := justfile_directory() / ".."
+build_dir   := root_dir / "build"
+results_dir := justfile_directory() / "results"
+timestamp   := `date +%Y%m%d_%H%M%S`
+
+# Build
+
+# Build all benchmark binaries
+build:
+    make -C {{root_dir}} bench
+
+# Clean build artifacts
+clean:
+    make -C {{root_dir}} clean
+
+# Helpers
+
+# Create results directory with timestamp
+@_setup_results dir=results_dir:
+    mkdir -p {{dir}}
+
+# Run a single benchmark binary with arbitrary args, tee to optional logfile
+[no-exit-message]
+@_run bin +args="":
+    {{build_dir}}/{{bin}} {{args}}
+
+# Individual Benchmarks
+
+# Run simple benchmark (fixed 128B allocs)
+simple threads="4" iterations="1000000" *flags="":
+    just _run bench_simple --threads {{threads}} --iterations {{iterations}} {{flags}}
+
+# Run mixed benchmark (1-40KB variable allocs, 256 live objects)
+mixed threads="4" iterations="1000000" *flags="":
+    just _run bench_mixed --threads {{threads}} --iterations {{iterations}} {{flags}}
+
+# Run large benchmark (5-25MB allocs, 20 live blocks)
+large threads="4" iterations="1000" *flags="":
+    just _run bench_malloc_large --threads {{threads}} --iterations {{iterations}} {{flags}}
+
+# Run threadtest benchmark (chunked alloc/dealloc with work simulation)
+threadtest threads="4" iterations="50" chunks="30000" chunk_size="64" work="0" *flags="":
+    just _run bench_threadtest --threads {{threads}} --iterations {{iterations}} --chunks {{chunks}} --chunk-size {{chunk_size}} --work {{work}} {{flags}}
+
+# Run larson benchmark (remote deallocation stress, time-bounded)
+larson threads="4" iterations="50" chunks_per_thread="100" min_size="10" max_size="500" sleep="10" *flags="":
+    just _run bench_larson --threads {{threads}} --iterations {{iterations}} --chunks-per-thread {{chunks_per_thread}} --min-size {{min_size}} --max-size {{max_size}} --sleep {{sleep}} {{flags}}
+
+# Presets
+
+# Quick smoke test - fast run of every benchmark with low iteration counts
+[group('presets')]
+quick:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    csv="out_quick.csv"
+    rm -f "$csv"
+    echo "=== Quick smoke test ==="
+    echo ""
+    just simple   4 100000 --csv "$csv"
+    just simple   4 100000 --csv "$csv" --glibc
+    echo ""
+    just mixed    4 100000 --csv "$csv"
+    just mixed    4 100000 --csv "$csv" --glibc
+    echo ""
+    just large    4 100 --csv "$csv"
+    just large    4 100 --csv "$csv" --glibc
+    echo ""
+    just threadtest 4 10 10000 64 0 --csv "$csv"
+    just threadtest 4 10 10000 64 0 --csv "$csv" --glibc
+    echo ""
+    just larson   4 50 100 10 500 3 --csv "$csv"
+    just larson   4 50 100 10 500 3 --csv "$csv" --glibc
+
+# Thread scaling - run each benchmark at 1,2,4,8,16 threads
+[group('presets')]
+scaling iterations="500000":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    csv="out_scaling.csv"
+    rm -f "$csv"
+    echo "=== Thread Scaling ==="
+    for t in 1 2 4 8 16; do
+        echo ""
+        echo "--- simple / threads=$t ---"
+        just simple   $t {{iterations}} --csv "$csv"
+        just simple   $t {{iterations}} --csv "$csv" --glibc
+        echo ""
+        echo "--- mixed / threads=$t ---"
+        just mixed    $t {{iterations}} --csv "$csv"
+        just mixed    $t {{iterations}} --csv "$csv" --glibc
+        echo ""
+        echo "--- large / threads=$t ---"
+        just large    $t 500 --csv "$csv"
+        just large    $t 500 --csv "$csv" --glibc
+        echo ""
+        echo "--- threadtest / threads=$t ---"
+        just threadtest $t 50 30000 64 0 --csv "$csv"
+        just threadtest $t 50 30000 64 0 --csv "$csv" --glibc
+        echo ""
+        echo "--- larson / threads=$t ---"
+        just larson   $t 50 100 10 500 10 --csv "$csv"
+        just larson   $t 50 100 10 500 10 --csv "$csv" --glibc
+    done
+
+# Full suite - thorough run of every benchmark with high iteration counts
+[group('presets')]
+full:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    csv="out_full.csv"
+    rm -f "$csv"
+    echo "=== Full benchmark suite ==="
+    echo ""
+    just simple   4 5000000 --csv "$csv"
+    just simple   4 5000000 --csv "$csv" --glibc
+    echo ""
+    just mixed    4 5000000 --csv "$csv"
+    just mixed    4 5000000 --csv "$csv" --glibc
+    echo ""
+    just large    4 5000 --csv "$csv"
+    just large    4 5000 --csv "$csv" --glibc
+    echo ""
+    just threadtest 4 100 50000 64 0 --csv "$csv"
+    just threadtest 4 100 50000 64 0 --csv "$csv" --glibc
+    echo ""
+    just larson   4 100 1000 10 500 30 --csv "$csv"
+    just larson   4 100 1000 10 500 30 --csv "$csv" --glibc
+
+# Stress test - high thread counts and heavy workloads
+[group('presets')]
+stress:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    csv="out_stress.csv"
+    rm -f "$csv"
+    echo "=== Stress test ==="
+    echo ""
+    just simple   16 10000000 --csv "$csv"
+    just simple   16 10000000 --csv "$csv" --glibc
+    echo ""
+    just mixed    16 10000000 --csv "$csv"
+    just mixed    16 10000000 --csv "$csv" --glibc
+    echo ""
+    just large    16 10000 --csv "$csv"
+    just large    16 10000 --csv "$csv" --glibc
+    echo ""
+    just threadtest 16 100 50000 64 100 --csv "$csv"
+    just threadtest 16 100 50000 64 100 --csv "$csv" --glibc
+    echo ""
+    just larson   32 100 1000 10 500 30 --csv "$csv"
+    just larson   32 100 1000 10 500 30 --csv "$csv" --glibc
+
+# Larson sweep - vary chunks-per-thread and size ranges
+[group('presets')]
+larson-sweep threads="8" sleep="10":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    csv="out_larson-sweep.csv"
+    rm -f "$csv"
+    echo "=== Larson parameter sweep ==="
+    for cpt in 50 100 500 1000; do
+        for minmax in "10 500" "64 64" "100 4000" "1000 8000"; do
+            read -r mn mx <<< "$minmax"
+            echo ""
+            echo "--- chunks_per_thread=$cpt min=$mn max=$mx ---"
+            just larson {{threads}} 50 $cpt $mn $mx {{sleep}} --csv "$csv"
+            just larson {{threads}} 50 $cpt $mn $mx {{sleep}} --csv "$csv" --glibc
+        done
+    done
+
+# Threadtest sweep - vary chunk sizes and work parameters
+[group('presets')]
+threadtest-sweep threads="8":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    csv="out_threadtest-sweep.csv"
+    rm -f "$csv"
+    echo "=== Threadtest parameter sweep ==="
+    for cs in 16 64 256 1024; do
+        for w in 0 10 100 1000; do
+            echo ""
+            echo "--- chunk_size=$cs work=$w ---"
+            just threadtest {{threads}} 50 30000 $cs $w --csv "$csv"
+            just threadtest {{threads}} 50 30000 $cs $w --csv "$csv" --glibc
+        done
+    done
+
+# Results Collection
+
+# Run a preset and save output to results/<preset>_<timestamp>.txt
+[group('results')]
+record preset *args="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p {{results_dir}}
+    outfile="{{results_dir}}/{{preset}}_{{timestamp}}.txt"
+    echo "Recording preset '{{preset}}' -> $outfile"
+    echo "# reclaim benchmark: {{preset}}" > "$outfile"
+    echo "# date: $(date -Iseconds)" >> "$outfile"
+    echo "# host: $(hostname)" >> "$outfile"
+    echo "# kernel: $(uname -r)" >> "$outfile"
+    echo "# args: {{args}}" >> "$outfile"
+    echo "" >> "$outfile"
+    just {{preset}} {{args}} 2>&1 | tee -a "$outfile"
+    echo ""
+    echo "Results saved to $outfile"
+
+# List all saved results
+[group('results')]
+results:
+    @ls -lht {{results_dir}}/ 2>/dev/null || echo "No results yet. Run: just record <preset>"
