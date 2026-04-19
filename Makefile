@@ -9,7 +9,6 @@ ASAN_FLAGS := -O1 -fsanitize=address,undefined -fno-omit-frame-pointer
 TSAN_FLAGS := -O1 -fsanitize=thread -fno-omit-frame-pointer
 CPPFLAGS := -Iinclude
 
-TARGET    := reclaim
 LIB_NAME  := libreclaim.a
 BENCH_BINS := bench_simple bench_mixed bench_malloc_large bench_threadtest bench_larson
 
@@ -24,7 +23,7 @@ MAIN_OBJ   := $(BUILD_DIR)/main.o
 
 .PHONY: all lib bench clean asan tsan
 
-all: $(BUILD_DIR)/$(TARGET)
+all: lib
 
 asan:
 	$(MAKE) clean
