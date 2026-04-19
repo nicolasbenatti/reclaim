@@ -119,16 +119,17 @@ int main(int argc, char **argv) {
   double throughput = (wall_s > 0.0) ? (double)total_allocs / wall_s : 0.0;
 
   char label[128];
+  long rss_kb = bench_max_rss_kb();
   bench_print_header();
   snprintf(label, sizeof(label), "%s/threads:%d/%s", "malloc_large", nthreads,
            is_glibc ? "glibc" : "reclaim");
-  printf("%-45s %10.3f us %12lld %20.3f\n", label, us_per_op, (long long)n_iter,
-         throughput);
+  printf("%-45s %10.3f us %12lld %20.3f %12ld\n", label, us_per_op,
+         (long long)n_iter, throughput, rss_kb);
   FILE *csv = bench_csv_open(csv_path,
-      "benchmark,n_threads,iterations,is_glibc,time_us,throughput_alloc_per_s");
+      "benchmark,n_threads,iterations,is_glibc,time_us,throughput_alloc_per_s,peak_rss_kb");
   if (csv) {
-    fprintf(csv, "malloc_large,%d,%lld,%d,%.3f,%.3f\n",
-            nthreads, (long long)n_iter, is_glibc, us_per_op, throughput);
+    fprintf(csv, "malloc_large,%d,%lld,%d,%.3f,%.3f,%ld\n",
+            nthreads, (long long)n_iter, is_glibc, us_per_op, throughput, rss_kb);
     fclose(csv);
   }
 

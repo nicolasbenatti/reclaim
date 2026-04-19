@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/resource.h>
 
 #include "reclaim.h"
 
@@ -23,10 +24,16 @@ static inline uint64_t xorshift64(uint64_t *state) {
 }
 
 static void bench_print_header(void) {
-  printf("%-45s %10s    %12s %20s\n", "Benchmark", "Time", "Iterations",
-         "Xput (alloc/s)");
+  printf("%-45s %10s    %12s %20s %12s\n", "Benchmark", "Time", "Iterations",
+         "Xput (alloc/s)", "RSS (KB)");
   printf("-------------------------------------------"
-         "--------------------------------------------------\n");
+         "--------------------------------------------------------------\n");
+}
+
+static long bench_max_rss_kb(void) {
+  struct rusage ru;
+  getrusage(RUSAGE_SELF, &ru);
+  return ru.ru_maxrss;
 }
 
 static FILE *bench_csv_open(const char *csv_path, const char *header) {
