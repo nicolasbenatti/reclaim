@@ -194,7 +194,7 @@ threadtest-sweep threads="8":
 
 # Results Collection
 
-# Run a preset and save output to results/<preset>_<timestamp>.txt
+# Run a preset and save output to CSV file
 [group('results')]
 record preset *args="":
     #!/usr/bin/env bash
