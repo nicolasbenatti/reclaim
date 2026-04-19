@@ -27,9 +27,10 @@ typedef struct span {
 /**
  * Large allocation header.
  */
-typedef struct {
-  uint32_t magic;    // LARGE_MAGIC for identification
-  size_t total_size; // total mmap size incl. header
+typedef struct large {
+  uint32_t magic;     // LARGE_MAGIC for identification
+  size_t total_size;  // total mmap size incl. header
+  struct large *next; // Next large span in hugecache
 } large_hdr_t;
 
 /**
@@ -52,9 +53,12 @@ typedef struct {
 
 // Map a request size to a size-class index
 int size_to_class(size_t size);
-
 // Map a size-class index to the actual allocation size
 size_t class_to_size(int sc);
+
+// Same but for large classes
+int size_to_class_large(size_t size);
+size_t class_to_size_large(int sc);
 
 void backend_init(void);
 void backend_deinit(void);

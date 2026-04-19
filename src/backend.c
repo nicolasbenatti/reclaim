@@ -17,9 +17,19 @@
 static pthread_spinlock_t span_lock;
 static span_t *scache;
 
+/**
+ * Cache for large allocations (above `LARGE_THRESHOLD`).
+ */
+static pthread_spinlock_t large_lock;
+static large_hdr_t *largecache[NUM_LARGE_CLASSES];
+
 void backend_init(void) {
   pthread_spin_init(&span_lock, PTHREAD_PROCESS_PRIVATE);
+  pthread_spin_init(&large_lock, PTHREAD_PROCESS_PRIVATE);
   scache = NULL;
+  for (int32_t i = 0; i < NUM_LARGE_CLASSES; i++) {
+    largecache[i] = NULL;
+  }
 }
 
 void backend_deinit(void) {
@@ -149,13 +159,31 @@ void *large_alloc(size_t size) {
    * recl_free() can use (ptr & SPAN_MASK) to find the header
    * and distinguish large from span-based allocations.
    */
+
+  // Compute needed chunk size (account for metadata)
   size_t hdr_offset = sizeof(large_hdr_t);
   if (hdr_offset < 16)
     hdr_offset = 16;
 
   size_t needed = hdr_offset + size;
-  long page = sysconf(_SC_PAGESIZE);
-  needed = (needed + (size_t)page - 1) & ~((size_t)page - 1);
+  long pagesize = sysconf(_SC_PAGESIZE);
+  needed = (needed + (size_t)pagesize - 1) & ~((size_t)pagesize - 1);
+
+  // Look for a free chunk in largecache
+  int class_idx = size_to_class_large(needed);
+  pthread_spin_lock(&large_lock);
+  if (largecache[class_idx] != NULL) {
+    // Cached entry found
+    large_hdr_t *entry = largecache[class_idx];
+    largecache[class_idx] = entry->next;
+    pthread_spin_unlock(&large_lock);
+
+    entry->next = NULL;
+    entry->magic = LARGE_MAGIC;
+    entry->total_size = needed;
+    return (char *)entry + hdr_offset;
+  }
+  pthread_spin_unlock(&large_lock);
 
   // Over-allocate + trim, to ensure alignment
   size_t map_size = needed + SPAN_SIZE;
@@ -186,5 +214,11 @@ void *large_alloc(size_t size) {
 
 void large_free(void *ptr) {
   large_hdr_t *hdr = (large_hdr_t *)((uintptr_t)ptr & SPAN_MASK);
-  munmap(hdr, hdr->total_size);
+
+  // Push to largecache
+  pthread_spin_lock(&large_lock);
+  int class_idx = size_to_class_large(hdr->total_size);
+  hdr->next = largecache[class_idx];
+  largecache[class_idx] = hdr;
+  pthread_spin_unlock(&large_lock);
 }

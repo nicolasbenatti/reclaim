@@ -17,6 +17,10 @@
 #define MIN_ALLOC ((size_t)16)
 #define MIN_ALLOC_LOG2 4
 
+// Large classes start from 512KiB
+#define NUM_LARGE_CLASSES 8
+#define MIN_ALLOC_LARGE_LOG2 19
+
 /*
  * Threshold for considering a request as a large allocation.
  */
