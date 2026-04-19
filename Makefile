@@ -11,7 +11,7 @@ CPPFLAGS := -Iinclude
 
 TARGET    := reclaim
 LIB_NAME  := libreclaim.a
-BENCH_BINS := bench_simple bench_mixed bench_malloc_large
+BENCH_BINS := bench_simple bench_mixed bench_malloc_large bench_threadtest bench_larson
 
 SRC_DIR   := src
 BENCH_DIR := benchmark
@@ -59,6 +59,10 @@ $(BUILD_DIR)/bench_malloc_large: $(BENCH_DIR)/large.c $(BUILD_DIR)/$(LIB_NAME)
 	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -L$(BUILD_DIR) -lreclaim -lpthread -o $@
 
 $(BUILD_DIR)/bench_threadtest: $(BENCH_DIR)/threadtest.c $(BUILD_DIR)/$(LIB_NAME)
+	@mkdir -p $(BUILD_DIR)
+	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -L$(BUILD_DIR) -lreclaim -lpthread -o $@
+
+$(BUILD_DIR)/bench_larson: $(BENCH_DIR)/larson.c $(BUILD_DIR)/$(LIB_NAME)
 	@mkdir -p $(BUILD_DIR)
 	@$(CC) $(CPPFLAGS) $(CFLAGS) $< -L$(BUILD_DIR) -lreclaim -lpthread -o $@
 
