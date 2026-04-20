@@ -195,7 +195,7 @@ void *large_alloc(size_t size) {
 
       entry->next = NULL;
       entry->magic = LARGE_MAGIC;
-      entry->total_size = bin_size;
+      entry->total_size = class_to_size_large(i);
       return (char *)entry + hdr_offset;
     }
   }
