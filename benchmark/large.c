@@ -17,7 +17,7 @@
 // Config parameters
 #define MAX_THREADS 128
 #define MALLOC_LARGE_MAX_LIVE 20
-#define MALLOC_LARGE_MIN_BUFSIZE 5 * 1024 * 102
+#define MALLOC_LARGE_MIN_BUFSIZE 5 * 1024 * 1024
 #define MALLOC_LARGE_MAX_BUFSIZE 25 * 1024 * 1024
 
 typedef struct {
