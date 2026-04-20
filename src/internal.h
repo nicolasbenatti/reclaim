@@ -18,7 +18,7 @@ typedef struct span {
   uint32_t magic;      // magic number
   uint32_t size_class; // index into size-class table
   uint32_t size;
-  uint32_t total_objects;  // total objects carved from span
+  uint32_t total_objects; // total objects carved from span
   void *base;
   struct span *next; // relative scache
 } span_t;
@@ -50,14 +50,45 @@ typedef struct {
   int count;
 } central_bin_t;
 
+// Size-class tables
+static const size_t class_sizes[NUM_SIZE_CLASSES] = {
+    16,   32,   64,    128,   256,   512,    1024,  2048,
+    4096, 8192, 16384, 32768, 65536, 131072, 262144};
+
+static const size_t large_sizes[NUM_LARGE_CLASSES] = {
+    512 << 10,  1024 << 10,  2048 << 10,  4096 << 10,
+    8192 << 10, 16384 << 10, 32768 << 10, 65536 << 10};
+
 // Map a request size to a size-class index
-int size_to_class(size_t size);
+static inline __attribute__((always_inline)) int size_to_class(size_t size) {
+  if (size <= MIN_ALLOC)
+    return 0;
+  int bits = (int)(sizeof(size_t) * 8) - __builtin_clzl(size - 1);
+  int sc = bits - MIN_ALLOC_LOG2;
+  return sc < NUM_SIZE_CLASSES ? sc : NUM_SIZE_CLASSES - 1;
+}
+
 // Map a size-class index to the actual allocation size
-size_t class_to_size(int sc);
+static inline __attribute__((always_inline)) size_t class_to_size(int sc) {
+  return class_sizes[sc];
+}
 
 // Same but for large classes
-int size_to_class_large(size_t size);
-size_t class_to_size_large(int sc);
+static inline __attribute__((always_inline)) int
+size_to_class_large(size_t size) {
+  if (size <= LARGE_THRESHOLD)
+    return 0;
+  int bits = (int)(sizeof(size_t) * 8) - __builtin_clzl(size - 1);
+  int sc = bits - MIN_ALLOC_LARGE_LOG2;
+  if (sc < 0)
+    sc = 0;
+  return sc < NUM_LARGE_CLASSES ? sc : NUM_LARGE_CLASSES - 1;
+}
+
+static inline __attribute__((always_inline)) size_t
+class_to_size_large(int sc) {
+  return large_sizes[sc];
+}
 
 void backend_init(void);
 void backend_deinit(void);
