@@ -8,6 +8,7 @@ root_dir    := justfile_directory() / ".."
 build_dir   := root_dir / "build"
 results_dir := justfile_directory() / "out"
 timestamp   := `date +%Y%m%d_%H%M%S`
+nruns       := "10"
 
 # Build
 
@@ -29,6 +30,11 @@ clean:
 [no-exit-message]
 @_run bin +args="":
     {{build_dir}}/{{bin}} {{args}}
+
+# Aggregate raw CSV (N runs per config) into final CSV with mean/stddev
+[no-exit-message]
+@_aggregate raw final:
+    awk -f scripts/aggregate.awk {{raw}} > {{final}}
 
 # Individual Benchmarks
 
@@ -59,141 +65,166 @@ larson threads="4" iterations="50" chunks_per_thread="100" min_size="10" max_siz
 quick:
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out/out_quick_$(date +%Y%m%d_%H%M%S).csv"
+    ts=$(date +%Y%m%d_%H%M%S)
+    raw="out/raw_quick_${ts}.csv"
+    csv="out/out_quick_${ts}.csv"
     mkdir -p out
-    rm -f "$csv"
-    echo "=== Quick smoke test ==="
+    rm -f "$raw" "$csv"
+    echo "=== Quick smoke test ({{nruns}} runs) ==="
+    for run in $(seq 1 {{nruns}}); do
+        echo ""
+        echo "--- run $run/{{nruns}} ---"
+        just simple   4 100000 --csv "$raw"
+        just simple   4 100000 --csv "$raw" --glibc
+        just mixed    4 100000 --csv "$raw"
+        just mixed    4 100000 --csv "$raw" --glibc
+        just large    4 100 --csv "$raw"
+        just large    4 100 --csv "$raw" --glibc
+        just threadtest 4 10 10000 64 0 --csv "$raw"
+        just threadtest 4 10 10000 64 0 --csv "$raw" --glibc
+        just larson   4 50 100 10 500 3 --csv "$raw"
+        just larson   4 50 100 10 500 3 --csv "$raw" --glibc
+    done
+    just _aggregate "$raw" "$csv"
     echo ""
-    just simple   4 100000 --csv "$csv"
-    just simple   4 100000 --csv "$csv" --glibc
-    echo ""
-    just mixed    4 100000 --csv "$csv"
-    just mixed    4 100000 --csv "$csv" --glibc
-    echo ""
-    just large    4 100 --csv "$csv"
-    just large    4 100 --csv "$csv" --glibc
-    echo ""
-    just threadtest 4 10 10000 64 0 --csv "$csv"
-    just threadtest 4 10 10000 64 0 --csv "$csv" --glibc
-    echo ""
-    just larson   4 50 100 10 500 3 --csv "$csv"
-    just larson   4 50 100 10 500 3 --csv "$csv" --glibc
+    echo "Results: $csv"
 
 # Allocator scalability - run at increasing no. of threads
 [group('presets')]
 scalability iterations="500000":
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out/out_scalability_$(date +%Y%m%d_%H%M%S).csv"
+    ts=$(date +%Y%m%d_%H%M%S)
+    raw="out/raw_scalability_${ts}.csv"
+    csv="out/out_scalability_${ts}.csv"
     mkdir -p out
-    rm -f "$csv"
-    echo "=== Thread Scaling ==="
-    for t in 1 2 4 8 16 32 64; do
+    rm -f "$raw" "$csv"
+    echo "=== Thread Scaling ({{nruns}} runs) ==="
+    for run in $(seq 1 {{nruns}}); do
         echo ""
-        echo "--- simple / threads=$t ---"
-        just simple   $t {{iterations}} --csv "$csv"
-        just simple   $t {{iterations}} --csv "$csv" --glibc
-        echo ""
-        echo "--- mixed / threads=$t ---"
-        just mixed    $t {{iterations}} --csv "$csv"
-        just mixed    $t {{iterations}} --csv "$csv" --glibc
-        echo ""
-        echo "--- large / threads=$t ---"
-        just large    $t 500 --csv "$csv"
-        just large    $t 500 --csv "$csv" --glibc
-        echo ""
-        echo "--- threadtest / threads=$t ---"
-        just threadtest $t 50 30000 64 0 --csv "$csv"
-        just threadtest $t 50 30000 64 0 --csv "$csv" --glibc
-        echo ""
-        echo "--- larson / threads=$t ---"
-        just larson   $t 50 100 10 500 10 --csv "$csv"
-        just larson   $t 50 100 10 500 10 --csv "$csv" --glibc
+        echo "--- run $run/{{nruns}} ---"
+        for t in 1 2 4 8 16 32 64; do
+            just simple   $t {{iterations}} --csv "$raw"
+            just simple   $t {{iterations}} --csv "$raw" --glibc
+            just mixed    $t {{iterations}} --csv "$raw"
+            just mixed    $t {{iterations}} --csv "$raw" --glibc
+            just large    $t 500 --csv "$raw"
+            just large    $t 500 --csv "$raw" --glibc
+            just threadtest $t 50 30000 64 0 --csv "$raw"
+            just threadtest $t 50 30000 64 0 --csv "$raw" --glibc
+            just larson   $t 50 100 10 500 10 --csv "$raw"
+            just larson   $t 50 100 10 500 10 --csv "$raw" --glibc
+        done
     done
+    just _aggregate "$raw" "$csv"
+    echo ""
+    echo "Results: $csv"
 
 # Full suite - thorough run of every benchmark with high iteration counts
 [group('presets')]
 full:
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out/out_full_$(date +%Y%m%d_%H%M%S).csv"
+    ts=$(date +%Y%m%d_%H%M%S)
+    raw="out/raw_full_${ts}.csv"
+    csv="out/out_full_${ts}.csv"
     mkdir -p out
-    rm -f "$csv"
-    echo "=== Full benchmark suite ==="
+    rm -f "$raw" "$csv"
+    echo "=== Full benchmark suite ({{nruns}} runs) ==="
+    for run in $(seq 1 {{nruns}}); do
+        echo ""
+        echo "--- run $run/{{nruns}} ---"
+        just simple   4 5000000 --csv "$raw"
+        just simple   4 5000000 --csv "$raw" --glibc
+        just mixed    4 5000000 --csv "$raw"
+        just mixed    4 5000000 --csv "$raw" --glibc
+        just large    4 5000 --csv "$raw"
+        just large    4 5000 --csv "$raw" --glibc
+        just threadtest 4 100 50000 64 0 --csv "$raw"
+        just threadtest 4 100 50000 64 0 --csv "$raw" --glibc
+        just larson   4 100 1000 10 500 30 --csv "$raw"
+        just larson   4 100 1000 10 500 30 --csv "$raw" --glibc
+    done
+    just _aggregate "$raw" "$csv"
     echo ""
-    just simple   4 5000000 --csv "$csv"
-    just simple   4 5000000 --csv "$csv" --glibc
-    echo ""
-    just mixed    4 5000000 --csv "$csv"
-    just mixed    4 5000000 --csv "$csv" --glibc
-    echo ""
-    just large    4 5000 --csv "$csv"
-    just large    4 5000 --csv "$csv" --glibc
-    echo ""
-    just threadtest 4 100 50000 64 0 --csv "$csv"
-    just threadtest 4 100 50000 64 0 --csv "$csv" --glibc
-    echo ""
-    just larson   4 100 1000 10 500 30 --csv "$csv"
-    just larson   4 100 1000 10 500 30 --csv "$csv" --glibc
+    echo "Results: $csv"
 
 # Stress test - high thread counts and heavy workloads
 [group('presets')]
 stress:
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out/out_stress_$(date +%Y%m%d_%H%M%S).csv"
+    ts=$(date +%Y%m%d_%H%M%S)
+    raw="out/raw_stress_${ts}.csv"
+    csv="out/out_stress_${ts}.csv"
     mkdir -p out
-    rm -f "$csv"
-    echo "=== Stress test ==="
+    rm -f "$raw" "$csv"
+    echo "=== Stress test ({{nruns}} runs) ==="
+    for run in $(seq 1 {{nruns}}); do
+        echo ""
+        echo "--- run $run/{{nruns}} ---"
+        just simple   16 10000000 --csv "$raw"
+        just simple   16 10000000 --csv "$raw" --glibc
+        just mixed    16 10000000 --csv "$raw"
+        just mixed    16 10000000 --csv "$raw" --glibc
+        just large    16 10000 --csv "$raw"
+        just large    16 10000 --csv "$raw" --glibc
+        just threadtest 16 100 50000 64 100 --csv "$raw"
+        just threadtest 16 100 50000 64 100 --csv "$raw" --glibc
+        just larson   32 100 1000 10 500 30 --csv "$raw"
+        just larson   32 100 1000 10 500 30 --csv "$raw" --glibc
+    done
+    just _aggregate "$raw" "$csv"
     echo ""
-    just simple   16 10000000 --csv "$csv"
-    just simple   16 10000000 --csv "$csv" --glibc
-    echo ""
-    just mixed    16 10000000 --csv "$csv"
-    just mixed    16 10000000 --csv "$csv" --glibc
-    echo ""
-    just large    16 10000 --csv "$csv"
-    just large    16 10000 --csv "$csv" --glibc
-    echo ""
-    just threadtest 16 100 50000 64 100 --csv "$csv"
-    just threadtest 16 100 50000 64 100 --csv "$csv" --glibc
-    echo ""
-    just larson   32 100 1000 10 500 30 --csv "$csv"
-    just larson   32 100 1000 10 500 30 --csv "$csv" --glibc
+    echo "Results: $csv"
 
 # Larson sweep - vary chunks-per-thread and size ranges
 [group('presets')]
 larson-sweep threads="8" sleep="10":
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out/out_larson-sweep_$(date +%Y%m%d_%H%M%S).csv"
+    ts=$(date +%Y%m%d_%H%M%S)
+    raw="out/raw_larson-sweep_${ts}.csv"
+    csv="out/out_larson-sweep_${ts}.csv"
     mkdir -p out
-    rm -f "$csv"
-    echo "=== Larson parameter sweep ==="
-    for cpt in 50 100 500 1000; do
-        for minmax in "10 500" "64 64" "100 4000" "1000 8000"; do
-            read -r mn mx <<< "$minmax"
-            echo ""
-            echo "--- chunks_per_thread=$cpt min=$mn max=$mx ---"
-            just larson {{threads}} 50 $cpt $mn $mx {{sleep}} --csv "$csv"
-            just larson {{threads}} 50 $cpt $mn $mx {{sleep}} --csv "$csv" --glibc
+    rm -f "$raw" "$csv"
+    echo "=== Larson parameter sweep ({{nruns}} runs) ==="
+    for run in $(seq 1 {{nruns}}); do
+        echo ""
+        echo "--- run $run/{{nruns}} ---"
+        for cpt in 50 100 500 1000; do
+            for minmax in "10 500" "64 64" "100 4000" "1000 8000"; do
+                read -r mn mx <<< "$minmax"
+                just larson {{threads}} 50 $cpt $mn $mx {{sleep}} --csv "$raw"
+                just larson {{threads}} 50 $cpt $mn $mx {{sleep}} --csv "$raw" --glibc
+            done
         done
     done
+    just _aggregate "$raw" "$csv"
+    echo ""
+    echo "Results: $csv"
 
 # Threadtest sweep - vary chunk sizes and work parameters
 [group('presets')]
 threadtest-sweep threads="8":
     #!/usr/bin/env bash
     set -euo pipefail
-    csv="out/out_threadtest-sweep_$(date +%Y%m%d_%H%M%S).csv"
+    ts=$(date +%Y%m%d_%H%M%S)
+    raw="out/raw_threadtest-sweep_${ts}.csv"
+    csv="out/out_threadtest-sweep_${ts}.csv"
     mkdir -p out
-    rm -f "$csv"
-    echo "=== Threadtest parameter sweep ==="
-    for cs in 16 64 256 1024; do
-        for w in 0 10 100 1000; do
-            echo ""
-            echo "--- chunk_size=$cs work=$w ---"
-            just threadtest {{threads}} 50 30000 $cs $w --csv "$csv"
-            just threadtest {{threads}} 50 30000 $cs $w --csv "$csv" --glibc
+    rm -f "$raw" "$csv"
+    echo "=== Threadtest parameter sweep ({{nruns}} runs) ==="
+    for run in $(seq 1 {{nruns}}); do
+        echo ""
+        echo "--- run $run/{{nruns}} ---"
+        for cs in 16 64 256 1024; do
+            for w in 0 10 100 1000; do
+                just threadtest {{threads}} 50 30000 $cs $w --csv "$raw"
+                just threadtest {{threads}} 50 30000 $cs $w --csv "$raw" --glibc
+            done
         done
     done
+    just _aggregate "$raw" "$csv"
+    echo ""
+    echo "Results: $csv"
