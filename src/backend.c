@@ -168,6 +168,9 @@ void *large_alloc(size_t size) {
   size_t hdr_offset = sizeof(large_hdr_t);
   if (hdr_offset < 16)
     hdr_offset = 16;
+  else
+    // Align start of chunk to 16 bytes
+    hdr_offset = (hdr_offset + 15) & (~15);
 
   size_t needed = hdr_offset + size;
   needed =
