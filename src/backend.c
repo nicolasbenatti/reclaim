@@ -23,10 +23,12 @@ static span_t *scache;
  */
 static pthread_spinlock_t large_lock;
 static large_hdr_t *largecache[NUM_LARGE_CLASSES];
+static long system_page_size;
 
 void backend_init(void) {
   pthread_spin_init(&span_lock, PTHREAD_PROCESS_PRIVATE);
   pthread_spin_init(&large_lock, PTHREAD_PROCESS_PRIVATE);
+  system_page_size = sysconf(_SC_PAGESIZE);
   scache = NULL;
   for (int32_t i = 0; i < NUM_LARGE_CLASSES; i++) {
     largecache[i] = NULL;
@@ -168,8 +170,8 @@ void *large_alloc(size_t size) {
     hdr_offset = 16;
 
   size_t needed = hdr_offset + size;
-  long pagesize = sysconf(_SC_PAGESIZE);
-  needed = (needed + (size_t)pagesize - 1) & ~((size_t)pagesize - 1);
+  needed =
+      (needed + (size_t)system_page_size - 1) & ~((size_t)system_page_size - 1);
 
   // Look for a free chunk in largecache
   int class_idx = size_to_class_large(needed);
