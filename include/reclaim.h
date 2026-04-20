@@ -19,6 +19,7 @@ void recl_alloc_main_heap(void);
  */
 void recl_free_main_heap(void);
 
+__attribute__((malloc, alloc_size(1)))
 void *recl_malloc(size_t size);
 
 void recl_free(void *ptr);
