@@ -1,12 +1,12 @@
 CC       := gcc
 CXX      := g++
-AR       := ar
-CFLAGS   := -Wall -std=c11 -O2 -D_GNU_SOURCE
-CXXFLAGS := -Wall -std=c++17 -O2 -D_GNU_SOURCE
-LDFLAGS  := -lpthread
+AR       := gcc-ar
+CFLAGS   := -Wall -std=c11 -O3 -D_GNU_SOURCE -flto -march=native
+CXXFLAGS := -Wall -std=c++17 -O3 -D_GNU_SOURCE
+LDFLAGS  := -lpthread -flto
 
-ASAN_FLAGS := -O1 -fsanitize=address,undefined -fno-omit-frame-pointer
-TSAN_FLAGS := -O1 -fsanitize=thread -fno-omit-frame-pointer
+ASAN_FLAGS := -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -fno-lto
+TSAN_FLAGS := -O1 -fsanitize=thread -fno-omit-frame-pointer -fno-lto
 CPPFLAGS := -Iinclude
 
 LIB_NAME  := libreclaim.a

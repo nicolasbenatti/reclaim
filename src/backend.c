@@ -173,10 +173,11 @@ void *large_alloc(size_t size) {
 
   // Look for a free chunk in largecache
   int class_idx = size_to_class_large(needed);
+  size_t bin_size = class_to_size_large(class_idx);
   pthread_spin_lock(&large_lock);
   _Bool found = false;
   for (int32_t i = class_idx; !found && i < NUM_LARGE_CLASSES; i++) {
-    if (largecache[i] != NULL && largecache[i]->total_size >= needed) {
+    if (largecache[i] != NULL) {
       // Cached entry found
       // printf("Found cached entry in bin %zu KiB for alloc_size %zu KiB\n",
       //        class_to_size_large(class_idx) >> 10, needed >> 10);
@@ -189,7 +190,7 @@ void *large_alloc(size_t size) {
 
       entry->next = NULL;
       entry->magic = LARGE_MAGIC;
-      entry->total_size = needed;
+      entry->total_size = bin_size;
       return (char *)entry + hdr_offset;
     }
   }
@@ -205,19 +206,22 @@ void *large_alloc(size_t size) {
   uintptr_t addr = (uintptr_t)raw;
   uintptr_t aligned = (addr + SPAN_SIZE - 1) & SPAN_MASK;
 
-  // Trim leading excess
-  size_t leading = aligned - addr;
-  if (leading > 0)
-    munmap(raw, leading);
+  if ((uintptr_t)raw != aligned) {
+    // Trim leading excess
+    size_t leading = aligned - addr;
+    // printf("leading %zu\n", leading);
+    if (leading > 0)
+      munmap(raw, leading);
 
-  // Trim trailing excess
-  size_t total_from_aligned = map_size - leading;
-  if (total_from_aligned > needed)
-    munmap((void *)(aligned + needed), total_from_aligned - needed);
+    // Trim trailing excess
+    size_t total_from_aligned = map_size - leading;
+    if (total_from_aligned > bin_size)
+      munmap((void *)(aligned + bin_size), total_from_aligned - bin_size);
+  }
 
   large_hdr_t *hdr = (large_hdr_t *)aligned;
   hdr->magic = LARGE_MAGIC;
-  hdr->total_size = needed;
+  hdr->total_size = bin_size;
 
   return (char *)aligned + hdr_offset;
 }
