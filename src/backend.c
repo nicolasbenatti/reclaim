@@ -202,7 +202,7 @@ void *large_alloc(size_t size) {
   pthread_spin_unlock(&large_lock);
 
   // Over-allocate + trim, to ensure alignment
-  size_t map_size = needed + SPAN_SIZE;
+  size_t map_size = bin_size + SPAN_SIZE;
   void *raw = mmap(NULL, map_size, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   if (raw == MAP_FAILED)
@@ -211,18 +211,15 @@ void *large_alloc(size_t size) {
   uintptr_t addr = (uintptr_t)raw;
   uintptr_t aligned = (addr + SPAN_SIZE - 1) & SPAN_MASK;
 
-  if ((uintptr_t)raw != aligned) {
-    // Trim leading excess
-    size_t leading = aligned - addr;
-    // printf("leading %zu\n", leading);
-    if (leading > 0)
-      munmap(raw, leading);
+  // Trim leading excess
+  size_t leading = aligned - addr;
+  if (leading > 0)
+    munmap(raw, leading);
 
-    // Trim trailing excess
-    size_t total_from_aligned = map_size - leading;
-    if (total_from_aligned > bin_size)
-      munmap((void *)(aligned + bin_size), total_from_aligned - bin_size);
-  }
+  // Trim trailing excess
+  size_t total_from_aligned = map_size - leading;
+  if (total_from_aligned > bin_size)
+    munmap((void *)(aligned + bin_size), total_from_aligned - bin_size);
 
   large_hdr_t *hdr = (large_hdr_t *)aligned;
   hdr->magic = LARGE_MAGIC;
