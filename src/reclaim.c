@@ -2,7 +2,6 @@
 #include "internal.h"
 #include <pthread.h>
 #include <stdatomic.h>
-#include <string.h>
 #include <sys/mman.h>
 
 static pthread_once_t init_once = PTHREAD_ONCE_INIT;
@@ -13,15 +12,12 @@ static void tcache_destroy(void *arg);
 
 static _Thread_local tcache_t tcache;
 
-static void tcache_ensure_init(void) {
+static inline __attribute__((always_inline)) void tcache_ensure_init(void) {
+  if (likely(tcache.initialized))
+    return;
   pthread_once(&init_once, global_init);
-
-  if (!tcache.initialized) {
-    memset(&tcache, 0, sizeof(tcache));
-    tcache.initialized = true;
-    // Register current thread so to deallocate its cache when it exits.
-    pthread_setspecific(tcache_key, (void *)1);
-  }
+  tcache.initialized = true;
+  pthread_setspecific(tcache_key, (void *)1);
 }
 
 /**
