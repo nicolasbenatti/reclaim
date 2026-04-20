@@ -231,4 +231,8 @@ void large_free(void *ptr) {
   hdr->next = largecache[class_idx];
   largecache[class_idx] = hdr;
   pthread_spin_unlock(&large_lock);
+
+  // Release large span to the OS when region is cached
+  madvise(largecache[class_idx], largecache[class_idx]->total_size,
+          MADV_DONTNEED);
 }
