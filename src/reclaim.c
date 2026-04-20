@@ -26,7 +26,7 @@ static inline __attribute__((always_inline)) void tcache_ensure_init(void) {
  * This happens when count exceeds MAX_CACHED.
  */
 static void tcache_flush(int sc) {
-  int to_flush = tcache.count[sc] / 2;
+  int to_flush = tcache.count[sc] >> 1;
   if (to_flush < 1)
     to_flush = 1;
 
