@@ -17,7 +17,7 @@
 #define MIN_ALLOC ((size_t)16)
 #define MIN_ALLOC_LOG2 4
 
-// Large classes start from 512KiB
+// Large classes start from LARGE_THRESHOLD * 2
 #define NUM_LARGE_CLASSES 8
 #define MIN_ALLOC_LARGE_LOG2 19
 
@@ -36,5 +36,9 @@
 
 // Magic number for large allocations.
 #define LARGE_MAGIC ((uint32_t)0x4C524543)
+
+// Branch prediction hints
+#define likely(x)   __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
 
 #endif // CONFIG_H

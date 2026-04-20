@@ -131,20 +131,20 @@ void recl_alloc_main_heap(void) { pthread_once(&init_once, global_init); }
 void recl_free_main_heap(void) { global_deinit(); }
 
 void *recl_malloc(size_t size) {
-  if (size == 0)
+  if (unlikely(size == 0))
     size = 1;
 
   tcache_ensure_init();
 
   // Large allocation goes directly to mmap...
-  if (size > LARGE_THRESHOLD)
+  if (unlikely(size > LARGE_THRESHOLD))
     return large_alloc(size);
 
   int sc = size_to_class(size);
 
   // Hot allocation path: fetch from frontend.
-  if (tcache.bins[sc]) {
-    void *obj = tcache.bins[sc];
+  void *obj = tcache.bins[sc];
+  if (likely(obj)) {
     tcache.bins[sc] = *(void **)obj;
     tcache.count[sc]--;
     return obj;
@@ -156,14 +156,14 @@ void *recl_malloc(size_t size) {
 }
 
 void recl_free(void *ptr) {
-  if (!ptr)
+  if (unlikely(!ptr))
     return;
 
   // Determine whether this is a span-based or mmap
   // (> 256 KiB) allocation.
   span_t *s = (span_t *)((uintptr_t)ptr & SPAN_MASK);
 
-  if (s->magic != SPAN_MAGIC) {
+  if (unlikely(s->magic != SPAN_MAGIC)) {
     large_free(ptr);
     return;
   }
@@ -178,6 +178,6 @@ void recl_free(void *ptr) {
   tcache.count[sc]++;
 
   // Flush half if over limit.
-  if (tcache.count[sc] > MAX_CACHED)
+  if (unlikely(tcache.count[sc] > MAX_CACHED))
     tcache_flush(sc);
 }
