@@ -1,5 +1,6 @@
 #include "internal.h"
 #include <pthread.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -173,16 +174,24 @@ void *large_alloc(size_t size) {
   // Look for a free chunk in largecache
   int class_idx = size_to_class_large(needed);
   pthread_spin_lock(&large_lock);
-  if (largecache[class_idx] != NULL) {
-    // Cached entry found
-    large_hdr_t *entry = largecache[class_idx];
-    largecache[class_idx] = entry->next;
-    pthread_spin_unlock(&large_lock);
+  _Bool found = false;
+  for (int32_t i = class_idx; !found && i < NUM_LARGE_CLASSES; i++) {
+    if (largecache[i] != NULL && largecache[i]->total_size >= needed) {
+      // Cached entry found
+      // printf("Found cached entry in bin %zu KiB for alloc_size %zu KiB\n",
+      //        class_to_size_large(class_idx) >> 10, needed >> 10);
+      /// TODO: if the bin is substantially bigger than requested, slice
+      /// the span and cache the remainer.
+      found = true;
+      large_hdr_t *entry = largecache[i];
+      largecache[i] = entry->next;
+      pthread_spin_unlock(&large_lock);
 
-    entry->next = NULL;
-    entry->magic = LARGE_MAGIC;
-    entry->total_size = needed;
-    return (char *)entry + hdr_offset;
+      entry->next = NULL;
+      entry->magic = LARGE_MAGIC;
+      entry->total_size = needed;
+      return (char *)entry + hdr_offset;
+    }
   }
   pthread_spin_unlock(&large_lock);
 
