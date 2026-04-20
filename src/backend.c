@@ -236,8 +236,8 @@ void large_free(void *ptr) {
   pthread_spin_lock(&large_lock);
   hdr->next = largecache[class_idx];
   largecache[class_idx] = hdr;
+  // Release physical pages to the OS, preserving the header.
+  madvise((char *)hdr + system_page_size, total - (size_t)system_page_size,
+          MADV_DONTNEED);
   pthread_spin_unlock(&large_lock);
-
-  // Release physical pages back to OS while keeping virtual mapping
-  madvise(hdr, total, MADV_DONTNEED);
 }
