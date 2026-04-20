@@ -233,15 +233,14 @@ void *large_alloc(size_t size) {
 
 void large_free(void *ptr) {
   large_hdr_t *hdr = (large_hdr_t *)((uintptr_t)ptr & SPAN_MASK);
+  size_t total = hdr->total_size;
+  int class_idx = size_to_class_large(total);
 
-  // Push to largecache
   pthread_spin_lock(&large_lock);
-  int class_idx = size_to_class_large(hdr->total_size);
   hdr->next = largecache[class_idx];
   largecache[class_idx] = hdr;
   pthread_spin_unlock(&large_lock);
 
-  // Release large span to the OS when region is cached
-  madvise(largecache[class_idx], largecache[class_idx]->total_size,
-          MADV_DONTNEED);
+  // Release physical pages back to OS while keeping virtual mapping
+  madvise(hdr, total, MADV_DONTNEED);
 }
