@@ -26,11 +26,11 @@ static inline __attribute__((always_inline)) void tcache_ensure_init(void) {
  * This happens when count exceeds MAX_CACHED.
  */
 static void tcache_flush(int sc) {
-  int to_flush = tcache.count[sc] >> 1;
+  int to_flush = tcache.bins[sc].count >> 1;
   if (to_flush < 1)
     to_flush = 1;
 
-  void *list = tcache.bins[sc];
+  void *list = tcache.bins[sc].bin;
   void *tail = list;
   for (int i = 1; i < to_flush; i++)
     tail = *(void **)tail;
@@ -38,8 +38,8 @@ static void tcache_flush(int sc) {
   void *rest = *(void **)tail;
   *(void **)tail = NULL;
 
-  tcache.bins[sc] = rest;
-  tcache.count[sc] -= to_flush;
+  tcache.bins[sc].bin = rest;
+  tcache.bins[sc].count -= to_flush;
 
   central_return(sc, list, to_flush);
 }
@@ -80,8 +80,8 @@ static void *tcache_refill(int sc) {
   void *result = list;
   void *rest = *(void **)list;
 
-  tcache.bins[sc] = rest;
-  tcache.count[sc] = got - 1;
+  tcache.bins[sc].bin = rest;
+  tcache.bins[sc].count = got - 1;
 
   return result;
 }
@@ -92,10 +92,10 @@ static void *tcache_refill(int sc) {
 static void tcache_destroy(void *arg) {
   (void)arg;
   for (int sc = 0; sc < NUM_SIZE_CLASSES; sc++) {
-    if (tcache.bins[sc]) {
-      central_return(sc, tcache.bins[sc], tcache.count[sc]);
-      tcache.bins[sc] = NULL;
-      tcache.count[sc] = 0;
+    if (tcache.bins[sc].bin) {
+      central_return(sc, tcache.bins[sc].bin, tcache.bins[sc].count);
+      tcache.bins[sc].bin = NULL;
+      tcache.bins[sc].count = 0;
     }
   }
   tcache.initialized = false;
@@ -139,10 +139,10 @@ void *recl_malloc(size_t size) {
   int sc = size_to_class(size);
 
   // Hot allocation path: fetch from frontend.
-  void *obj = tcache.bins[sc];
+  void *obj = tcache.bins[sc].bin;
   if (likely(obj)) {
-    tcache.bins[sc] = *(void **)obj;
-    tcache.count[sc]--;
+    tcache.bins[sc].bin = *(void **)obj;
+    tcache.bins[sc].count--;
     return obj;
   }
 
@@ -169,11 +169,11 @@ void recl_free(void *ptr) {
   int sc = (int)s->size_class;
 
   // Push chunk to tcache.
-  *(void **)ptr = tcache.bins[sc];
-  tcache.bins[sc] = ptr;
-  tcache.count[sc]++;
+  *(void **)ptr = tcache.bins[sc].bin;
+  tcache.bins[sc].bin = ptr;
+  tcache.bins[sc].count++;
 
   // Flush half if over limit.
-  if (unlikely(tcache.count[sc] > MAX_CACHED))
+  if (unlikely(tcache.bins[sc].count > MAX_CACHED))
     tcache_flush(sc);
 }

@@ -36,9 +36,13 @@ typedef struct large {
  * Thread-local cache (tcache).
  */
 typedef struct {
-  void *bins[NUM_SIZE_CLASSES]; // singly-linked free list head
-  int count[NUM_SIZE_CLASSES];  // cached object count per bin
+  void *bin;  // singly-linked free list head
+  int count;  // cached object count
+} tcache_bin_t;
+
+typedef struct {
   bool initialized;
+  tcache_bin_t bins[NUM_SIZE_CLASSES];
 } tcache_t;
 
 /**
