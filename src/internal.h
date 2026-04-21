@@ -45,14 +45,16 @@ typedef struct {
   tcache_bin_t bins[NUM_SIZE_CLASSES];
 } tcache_t;
 
-/**
- * Central cache (ccache).
- */
+// Central cache (ccache).
+//
+// Each bin is padded to a full cache line so that adjacent
+// size-class bins accessed by different threads never share
+// the same cache line (prevents false sharing).
 typedef struct {
   pthread_spinlock_t lock;
-  void *head; // singly-linked free list
+  void *head; // freelist
   int count;
-} central_bin_t;
+} __attribute__((aligned(CACHE_LINE_SIZE))) central_bin_t;
 
 // Size-class tables
 static const size_t class_sizes[NUM_SIZE_CLASSES] = {

@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#define CACHE_LINE_SIZE 64
+
 // Each span is a 2MiB mmap'd region, 2MiB-aligned.
 #define SPAN_SIZE ((size_t)(1 << 21))
 #define SPAN_ALIGN SPAN_SIZE
