@@ -92,7 +92,7 @@ static void span_init(span_t *s, int size_class) {
   s->next = NULL;
 
   uintptr_t base = (uintptr_t)s + sizeof(span_t);
-  base = (base + obj_size - 1) & ~(obj_size - 1);
+  base = (base + MIN_ALLOC - 1) & ~(uintptr_t)(MIN_ALLOC - 1);
   s->base = (void *)base;
 
   uintptr_t span_end = (uintptr_t)s + SPAN_SIZE;
