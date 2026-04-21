@@ -155,8 +155,7 @@ void recl_free(void *ptr) {
   if (unlikely(!ptr))
     return;
 
-  // Determine whether this is a span-based or mmap
-  // (> 256 KiB) allocation.
+  // Determine whether this is a span-based or mmap'd allocation.
   span_t *s = (span_t *)((uintptr_t)ptr & SPAN_MASK);
 
   if (unlikely(s->magic != SPAN_MAGIC)) {

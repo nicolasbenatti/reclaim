@@ -36,8 +36,8 @@ typedef struct large {
  * Thread-local cache (tcache).
  */
 typedef struct {
-  void *bin;  // singly-linked free list head
-  int count;  // cached object count
+  void *bin; // freelist
+  int count; // cached object count
 } tcache_bin_t;
 
 typedef struct {
