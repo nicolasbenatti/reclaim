@@ -56,44 +56,47 @@ typedef struct {
   int count;
 } __attribute__((aligned(CACHE_LINE_SIZE))) central_bin_t;
 
-// Size-class tables
-static const size_t class_sizes[NUM_SIZE_CLASSES] = {
-    16,   32,   64,    128,   256,   512,    1024,  2048,
-    4096, 8192, 16384, 32768, 65536, 131072, 262144};
+// Size classes.
+//
+// There are no lookup tables for computing size classed; this is
+// to avoid any memory access for such a heavily needed operation.
+// This is true for both normal and large allocations.
 
-static const size_t large_sizes[NUM_LARGE_CLASSES] = {
-    512 << 10,  1024 << 10,  2048 << 10,  4096 << 10,
-    8192 << 10, 16384 << 10, 32768 << 10, 65536 << 10};
-
-// Map a request size to a size-class index
 static inline __attribute__((always_inline)) int size_to_class(size_t size) {
-  if (size <= MIN_ALLOC)
+  if (unlikely(size) <= MIN_ALLOC)
     return 0;
-  int bits = (int)(sizeof(size_t) * 8) - __builtin_clzl(size - 1);
-  int sc = bits - MIN_ALLOC_LOG2;
-  return sc < NUM_SIZE_CLASSES ? sc : NUM_SIZE_CLASSES - 1;
+  if (size <= 32)
+    return 1;
+  if (size <= 48)
+    return 2;
+  if (size <= 64)
+    return 3;
+  int k = 63 - __builtin_clzl(size - 1);
+  return (k << 2) + (int)((size - 1) >> (k - 2)) - 24;
 }
 
-// Map a size-class index to the actual allocation size
 static inline __attribute__((always_inline)) size_t class_to_size(int sc) {
-  return class_sizes[sc];
+  if (sc == 0)
+    return 16;
+  if (sc == 1)
+    return 32;
+  if (sc == 2)
+    return 48;
+  return (size_t)(4 + ((sc - 3) & 3)) << (((sc - 3) >> 2) + 4);
 }
 
-// Same but for large classes
 static inline __attribute__((always_inline)) int
 size_to_class_large(size_t size) {
   if (size <= LARGE_THRESHOLD)
     return 0;
   int bits = (int)(sizeof(size_t) * 8) - __builtin_clzl(size - 1);
   int sc = bits - MIN_ALLOC_LARGE_LOG2;
-  if (sc < 0)
-    sc = 0;
   return sc < NUM_LARGE_CLASSES ? sc : NUM_LARGE_CLASSES - 1;
 }
 
 static inline __attribute__((always_inline)) size_t
 class_to_size_large(int sc) {
-  return large_sizes[sc];
+  return (size_t)1 << (sc + MIN_ALLOC_LARGE_LOG2);
 }
 
 void backend_init(void);

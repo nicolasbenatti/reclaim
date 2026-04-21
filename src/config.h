@@ -12,7 +12,7 @@
 #define SPAN_MASK (~(SPAN_SIZE - 1))
 
 // Number of size classes for normal allocations.
-#define NUM_SIZE_CLASSES 28
+#define NUM_SIZE_CLASSES 52
 #define MIN_ALLOC ((size_t)16)
 #define MIN_ALLOC_LOG2 4
 
