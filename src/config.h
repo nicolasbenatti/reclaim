@@ -9,11 +9,8 @@
 // Span lookup from any chunk ptr: ptr & SPAN_MASK
 #define SPAN_MASK (~(SPAN_SIZE - 1))
 
-/*
- * Reclaim employs 15 size classes, each double of the previous, ranging
- * from 16B to 256KiB.
- */
-#define NUM_SIZE_CLASSES 15
+// Number of size classes for normal allocations.
+#define NUM_SIZE_CLASSES 28
 #define MIN_ALLOC ((size_t)16)
 #define MIN_ALLOC_LOG2 4
 
@@ -21,9 +18,6 @@
 #define NUM_LARGE_CLASSES 8
 #define MIN_ALLOC_LARGE_LOG2 19
 
-/*
- * Threshold for considering a request as a large allocation.
- */
 #define LARGE_THRESHOLD ((size_t)(256 * 1024))
 
 // No. of objects moved between tcaches and ccache in a single batch transfer.
@@ -37,8 +31,7 @@
 // Magic number for large allocations.
 #define LARGE_MAGIC ((uint32_t)0x4C524543)
 
-// Branch prediction hints
-#define likely(x)   __builtin_expect(!!(x), 1)
+#define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
 #endif // CONFIG_H
