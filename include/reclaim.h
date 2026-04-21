@@ -3,20 +3,16 @@
 
 #include <stddef.h>
 
-/*
- * Allocate main working area.
- *
- * It is called on first recl_malloc(), but may be called
- * explicitly to reserve a memory pool beforehand.
- */
+// Allocate main working area.
+//
+// It is called on first recl_malloc(), but may be called
+// explicitly to reserve a memory pool beforehand.
 void recl_alloc_main_heap(void);
 
-/*
- * Deallocate main working area.
- *
- * This function must be manually called to clear the
- * memory pool reserved beforehand.
- */
+// Deallocate main working area.
+//
+// This function must be manually called to clear the
+// memory pool reserved beforehand.
 void recl_free_main_heap(void);
 
 __attribute__((hot, malloc, alloc_size(1), assume_aligned(16)))

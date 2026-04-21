@@ -8,12 +8,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/**
- * Span.
- *
- * Each span is a contiguous 2MiB mmap'd region, 2MiB-aligned.
- * Spans serve as a basis storing objects, and they are all fixed size.
- */
+// Span.
+//
+// Each span is a contiguous 2MiB mmap'd region, 2MiB-aligned.
+// Spans serve as a basis storing objects, and they are all fixed size.
 typedef struct span {
   uint32_t magic;      // magic number
   uint32_t size_class; // index into size-class table
@@ -23,18 +21,14 @@ typedef struct span {
   struct span *next; // relative scache
 } span_t;
 
-/**
- * Large allocation header.
- */
+// Large allocation header.
 typedef struct large {
   uint32_t magic;     // LARGE_MAGIC for identification
   size_t total_size;  // total mmap size incl. header
   struct large *next; // Next large span in hugecache
 } large_hdr_t;
 
-/**
- * Thread-local cache (tcache).
- */
+// Thread-local cache (tcache).
 typedef struct {
   void *bin; // freelist
   int count; // cached object count
@@ -45,22 +39,21 @@ typedef struct {
   tcache_bin_t bins[NUM_SIZE_CLASSES];
 } tcache_t;
 
-// Central cache (ccache).
+// Central cache (ccache)
 //
-// Each bin is padded to a full cache line so that adjacent
-// size-class bins accessed by different threads never share
-// the same cache line (prevents false sharing).
+// Each bin cache-line aligned so that bins accessed
+// by different threads never share the same cache line
 typedef struct {
   pthread_spinlock_t lock;
   void *head; // freelist
   int count;
 } __attribute__((aligned(CACHE_LINE_SIZE))) central_bin_t;
 
-// Size classes.
+// Size classes
 //
 // There are no lookup tables for computing size classed; this is
-// to avoid any memory access for such a heavily needed operation.
-// This is true for both normal and large allocations.
+// to avoid any memory access for such a heavily needed operation
+// This is true for both normal and large allocations
 
 static inline __attribute__((always_inline)) int size_to_class(size_t size) {
   if (size <= MIN_ALLOC)

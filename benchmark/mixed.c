@@ -1,5 +1,5 @@
 // === mixed ===
-// Each benchmark iteration is one alloc or free decision.
+// Each benchmark iteration is one alloc or free decision
 // Build: make bench
 // Run:   ./build/bench_mixed
 //
@@ -28,7 +28,7 @@ typedef struct {
   stats_t stats;
 } thread_data;
 
-// Same as `mixed`, but using glibc's ptmalloc2 allocator.
+// Same as `mixed`, but using glibc's ptmalloc2 allocator
 void *run_benchmark(void *__data) {
   thread_data *data = (thread_data *)__data;
 

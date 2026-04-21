@@ -1,5 +1,5 @@
 // === threadtest ===
-// Each benchmark iteration is one alloc or free decision.
+// Each benchmark iteration is one alloc or free decision
 // Build: make bench
 // Run:   ./build/bench_threadtest
 

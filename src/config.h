@@ -5,13 +5,13 @@
 
 #define CACHE_LINE_SIZE 64
 
-// Each span is a 2MiB mmap'd region, 2MiB-aligned.
+// Each span is a 2MiB mmap'd region, 2MiB-aligned
 #define SPAN_SIZE ((size_t)(1 << 21))
 #define SPAN_ALIGN SPAN_SIZE
 // Span lookup from any chunk ptr: ptr & SPAN_MASK
 #define SPAN_MASK (~(SPAN_SIZE - 1))
 
-// Number of size classes for normal allocations.
+// Number of size classes for normal allocations
 #define NUM_SIZE_CLASSES 52
 #define MIN_ALLOC ((size_t)16)
 #define MIN_ALLOC_LOG2 4
@@ -22,15 +22,15 @@
 
 #define LARGE_THRESHOLD ((size_t)(256 * 1024))
 
-// No. of objects moved between tcaches and ccache in a single batch transfer.
+// No. of objects moved between tcaches and ccache in a single batch transfer
 #define BATCH_SIZE 32
 // Maximum objects in a tcache bin
 #define MAX_CACHED 64
 
-// Magic number for spans.
+// Magic number for spans
 #define SPAN_MAGIC ((uint32_t)0x5043414C)
 
-// Magic number for large allocations.
+// Magic number for large allocations
 #define LARGE_MAGIC ((uint32_t)0x4C524543)
 
 #define likely(x) __builtin_expect(!!(x), 1)

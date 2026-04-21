@@ -20,11 +20,9 @@ static inline __attribute__((always_inline)) void tcache_ensure_init(void) {
   pthread_setspecific(tcache_key, (void *)1);
 }
 
-/**
- * Flush half of a thread-cache bin back to the ccache.
- *
- * This happens when count exceeds MAX_CACHED.
- */
+// Flush half of a thread-cache bin back to the ccache.
+//
+// This happens when count exceeds MAX_CACHED.
 __attribute__((noinline, cold)) static void tcache_flush(int sc) {
   int to_flush = tcache.bins[sc].count >> 1;
   if (to_flush < 1)
@@ -44,19 +42,17 @@ __attribute__((noinline, cold)) static void tcache_flush(int sc) {
   ccache_return(sc, list, tail, to_flush);
 }
 
-/**
- * Refill tcache.
- *
- * If the ccache has a chunk of the right size
- * available, then take it from there; otherwise fetch from backend.
- */
+// Refill tcache.
+//
+// If the ccache has a chunk of the right size
+// available, then take it from there; otherwise fetch from backend.
 __attribute__((noinline, cold)) static void *tcache_refill(int sc) {
   int got = 0;
   void *list = ccache_fetch(sc, BATCH_SIZE, &got);
 
   if (unlikely(!list)) {
     // NOTE: the span is directly fetched to avoid calling
-    // the ccache in between.
+    // the ccache in between
     span_t *s = span_alloc(sc);
     if (unlikely(!s))
       return NULL;
@@ -76,7 +72,7 @@ __attribute__((noinline, cold)) static void *tcache_refill(int sc) {
     }
   }
 
-  // Return first to the caller, cache the rest.
+  // Return first to the caller, cache the rest
   void *result = list;
   void *rest = *(void **)list;
 
@@ -86,9 +82,7 @@ __attribute__((noinline, cold)) static void *tcache_refill(int sc) {
   return result;
 }
 
-/**
- * Deallocate a tcache.
- */
+// Deallocate a tcache.
 __attribute__((cold)) static void tcache_destroy(void *arg) {
   (void)arg;
   for (int sc = 0; sc < NUM_SIZE_CLASSES; sc++) {
@@ -101,22 +95,18 @@ __attribute__((cold)) static void tcache_destroy(void *arg) {
   tcache.initialized = false;
 }
 
-/**
- * Initialise the allocator subsystem.
- */
+// Initialise the allocator subsystem.
 __attribute__((cold)) static void global_init(void) {
   backend_init();
   ccache_init();
   pthread_key_create(&tcache_key, tcache_destroy);
 }
 
-/**
- * Destruct the allocator subsystem.
- */
+// Destruct the allocator subsystem.
 __attribute__((cold)) static void global_deinit(void) {
   tcache_destroy(NULL);
   ccache_deinit();
-  // Release span memory to the OS.
+  // Release span memory to the OS
   backend_deinit();
   pthread_key_delete(tcache_key);
 }
@@ -132,13 +122,13 @@ void *recl_malloc(size_t size) {
 
   tcache_ensure_init();
 
-  // Large allocation goes directly to mmap...
+  // Large allocation goes directly to mmap
   if (unlikely(size > LARGE_THRESHOLD))
     return large_alloc(size);
 
   int sc = size_to_class(size);
 
-  // Hot allocation path: fetch from frontend.
+  // Hot allocation path: fetch from frontend
   void *obj = tcache.bins[sc].bin;
   if (likely(obj)) {
     tcache.bins[sc].bin = *(void **)obj;
@@ -147,7 +137,7 @@ void *recl_malloc(size_t size) {
   }
 
   // Cold allocation path: refill from central cache or fetch a span from the
-  // backend.
+  // backend
   return tcache_refill(sc);
 }
 
@@ -155,7 +145,7 @@ void recl_free(void *ptr) {
   if (unlikely(!ptr))
     return;
 
-  // Determine whether this is a span-based or mmap'd allocation.
+  // Determine whether this is a span-based or mmap'd allocation
   span_t *s = (span_t *)((uintptr_t)ptr & SPAN_MASK);
 
   if (unlikely(s->magic != SPAN_MAGIC)) {
@@ -167,12 +157,12 @@ void recl_free(void *ptr) {
 
   int sc = (int)s->size_class;
 
-  // Push chunk to tcache.
+  // Push chunk to tcache
   *(void **)ptr = tcache.bins[sc].bin;
   tcache.bins[sc].bin = ptr;
   tcache.bins[sc].count++;
 
-  // Flush half if over limit.
+  // Flush half if over limit
   if (unlikely(tcache.bins[sc].count > MAX_CACHED))
     tcache_flush(sc);
 }

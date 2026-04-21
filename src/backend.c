@@ -7,20 +7,16 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-/**
- * Span cache (scache).
- *
- * This global data structure performs bookkeping for free spans;
- * it serves requests coming from the ccache, requesting new spans
- * from the OS when needed.
- * Access is protected by a global lock.
- */
+// Span cache (scache).
+//
+// This global data structure performs bookkeping for free spans;
+// it serves requests coming from the ccache, requesting new spans
+// from the OS when needed.
+// Access is protected by a global lock.
 static pthread_spinlock_t span_lock;
 static span_t *scache;
 
-/**
- * Cache for large allocations (above `LARGE_THRESHOLD`).
- */
+// Cache for large allocations (above `LARGE_THRESHOLD`).
 static pthread_spinlock_t large_lock;
 static large_hdr_t *largecache[NUM_LARGE_CLASSES];
 static long system_page_size;
@@ -36,7 +32,7 @@ void backend_init(void) {
 }
 
 void backend_deinit(void) {
-  // Walk the scache list and release every span to the OS.
+  // Walk the scache list and release every span to the OS
   span_t *runner = scache;
   while (runner) {
     span_t *next = runner->next;
@@ -47,18 +43,14 @@ void backend_deinit(void) {
   pthread_spin_destroy(&span_lock);
 }
 
-/**
- * Allocate a span.
- *
- * Returns: address of the span.
- */
+// Allocate a span.
+//
+// Returns: address of the span.
 __attribute__((cold)) static void *mmap_span(void) {
-  /*
-   * Allocate 2 * SPAN_SIZE so to carve out an aligned SPAN_SIZE
-   * region, then unmap the excess before and after.
-   * NOTE: spans actually consume physical memory only when
-   * requested, thanks to on-demand paging.
-   */
+  // Allocate 2 * SPAN_SIZE so to carve out an aligned SPAN_SIZE
+  // region, then unmap the excess before and after.
+  // NOTE: spans actually consume physical memory only when
+  // requested, thanks to on-demand paging.
   size_t map_size = SPAN_SIZE * 2;
   void *raw = mmap(NULL, map_size, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -80,9 +72,7 @@ __attribute__((cold)) static void *mmap_span(void) {
   return (void *)aligned;
 }
 
-/**
- * Initialise a memory region as a span.
- */
+// Initialise a memory region as a span.
 static void span_init(span_t *s, int size_class) {
   size_t obj_size = class_to_size(size_class);
 
@@ -100,7 +90,7 @@ static void span_init(span_t *s, int size_class) {
   s->total_objects = count;
 
   // Build a linked free list through the objects, by storing the next
-  // ptr in the first 4 bytes of a free object.
+  // ptr in the first 4 bytes of a free object
   void *prev = NULL;
   for (uint32_t i = count; i > 0; i--) {
     void *obj = (void *)(base + (i - 1) * obj_size);
@@ -109,9 +99,7 @@ static void span_init(span_t *s, int size_class) {
   }
 }
 
-/**
- * Allocate a span for a given size class.
- */
+// Allocate a span for a given size class.
 span_t *span_alloc(int size_class) {
   span_t *s = NULL;
 
@@ -133,13 +121,11 @@ span_t *span_alloc(int size_class) {
   return s;
 }
 
-/**
- * Public: release an empty span back to the cache
- *
- * NOTE: for now, reclaim doesn't yield memory back
- * to the OS unless `recl_free_main_heap` is called.
- * It might in the future.
- */
+// Public: release an empty span back to the cache
+//
+// NOTE: for now, reclaim doesn't yield memory back
+// to the OS unless `recl_free_main_heap` is called.
+// It might in the future.
 void span_release(span_t *s) {
   s->magic = 0;
 
@@ -149,22 +135,18 @@ void span_release(span_t *s) {
   pthread_spin_unlock(&span_lock);
 }
 
-/**
- * Perform a large allocation.
- *
- * In reclaim, a large allocation is one
- * exceeding `LARGE_THRESHOLD`, which bypasses
- * all caches and goes directly mmap'd from the backend.
- */
+// Perform a large allocation.
+//
+// In reclaim, a large allocation is one
+// exceeding `LARGE_THRESHOLD`, which bypasses
+// all caches and goes directly mmap'd from the backend.
 __attribute__((
     cold)) // marked as cold; that's a tradeoff we make to favour smaller allocs
 void *
 large_alloc(size_t size) {
-  /*
-   * Large allocations must be SPAN_SIZE-aligned so that
-   * recl_free() can use (ptr & SPAN_MASK) to find the header
-   * and distinguish large from span-based allocations.
-   */
+  // Large allocations must be SPAN_SIZE-aligned so that
+  // recl_free() can use (ptr & SPAN_MASK) to find the header
+  // and distinguish large from span-based allocations.
 
   // Compute needed chunk size (account for metadata)
   size_t hdr_offset = sizeof(large_hdr_t);
@@ -188,8 +170,8 @@ large_alloc(size_t size) {
       // Cached entry found
       // printf("Found cached entry in bin %zu KiB for alloc_size %zu KiB\n",
       //        class_to_size_large(class_idx) >> 10, needed >> 10);
-      /// TODO: if the bin is substantially bigger than requested, slice
-      /// the span and cache the remainer.
+      // TODO: if the bin is substantially bigger than requested, slice
+      // the span and cache the remainer
       found = true;
       large_hdr_t *entry = largecache[i];
       largecache[i] = entry->next;
@@ -238,7 +220,7 @@ __attribute__((cold)) void large_free(void *ptr) {
   pthread_spin_lock(&large_lock);
   hdr->next = largecache[class_idx];
   largecache[class_idx] = hdr;
-  // Release physical pages to the OS, preserving the header.
+  // Release physical pages to the OS, preserving the header
   madvise((char *)hdr + system_page_size, total - (size_t)system_page_size,
           MADV_DONTNEED);
   pthread_spin_unlock(&large_lock);

@@ -1,7 +1,7 @@
 // === malloc_large ===
 // This benchmark has been reimplemented from the well-assessed mimalloc-bench
 // suite. Tests allocation of large blocks (5 to 25 MiB) with up to 20 live at
-// any time.
+// any time
 //
 // Build: make bench
 // Run:   ./build/bench_malloc_large

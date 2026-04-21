@@ -1,7 +1,7 @@
 // === simple ===
 // Simple allocation benchmark inspired to ltalloc,
 // in which threads repeatedly allocate and free
-// fixed-size chunks.
+// fixed-size chunks
 //
 // Build: make bench
 // Run:   ./build/bench_simple

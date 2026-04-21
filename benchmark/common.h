@@ -14,7 +14,7 @@ typedef struct {
 } stats_t;
 
 static inline uint64_t xorshift64(uint64_t *state) {
-  // glibc's rand() has shared state, therefore it is not thread-safe.
+  // glibc's rand() has shared state, therefore it is not thread-safe
   uint64_t x = *state;
   x ^= x << 13;
   x ^= x >> 7;

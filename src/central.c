@@ -2,16 +2,14 @@
 #include <pthread.h>
 #include <sys/mman.h>
 
-/**
- * Central cache (`ccache`).
- *
- * This global data structure is responsible for receiving
- * freed chunks from the tcaches when they become full.
- * When a chunk of the requested size is absent from the
- * local tcache, then they're fetched from the ccache.
- * ccaches are not lock-free; they are accessed using spinlocks,
- * which have lower latency w.r.t. mutexes.
- */
+// Central cache (`ccache`).
+//
+// This global data structure is responsible for receiving
+// freed chunks from the tcaches when they become full.
+// When a chunk of the requested size is absent from the
+// local tcache, then they're fetched from the ccache.
+// ccaches are not lock-free; they are accessed using spinlocks,
+// which have lower latency w.r.t. mutexes.
 static central_bin_t ccache[NUM_SIZE_CLASSES];
 
 void ccache_init(void) {
@@ -23,7 +21,7 @@ void ccache_init(void) {
 }
 
 void ccache_deinit(void) {
-  // Walk every bin's free list and clear it.
+  // Walk every bin's free list and clear it
   span_t *to_free = NULL;
 
   for (int i = 0; i < NUM_SIZE_CLASSES; i++) {
@@ -32,7 +30,7 @@ void ccache_deinit(void) {
       void *next_obj = *(void **)cur;
       span_t *s = (span_t *)((uintptr_t)cur & SPAN_MASK);
       if (s->magic == SPAN_MAGIC) {
-        // Set magic numbers to 0 to avoid re-queueing it.
+        // Set magic numbers to 0 to avoid re-queueing it
         s->magic = 0;
         s->next = to_free;
         to_free = s;
@@ -52,14 +50,12 @@ void ccache_deinit(void) {
   }
 }
 
-/**
- * Fetch up to `batch` objects from the ccache.
- *
- * The size class bin is determined by `sc`.
- *
- * Returns: * A linked list containing the fetched chunks.
- *          * NULL if the bin for size class `sc` is empty.
- */
+// Fetch up to `batch` objects from the ccache.
+//
+// The size class bin is determined by `sc`.
+//
+// Returns: * A linked list containing the fetched chunks.
+//          * NULL if the bin for size class `sc` is empty.
 void *ccache_fetch(int sc, int batch, int *out_count) {
   central_bin_t *bin = &ccache[sc];
   void *result = NULL;
@@ -91,11 +87,9 @@ void *ccache_fetch(int sc, int batch, int *out_count) {
   return result;
 }
 
-/**
- * Return `count` objects to the ccache.
- *
- * The size class bin is determined by `sc`.
- */
+// Return `count` objects to the ccache.
+//
+// The size class bin is determined by `sc`.
 void ccache_return(int sc, void *list, void *tail, int count) {
   if (!list || count <= 0)
     return;
@@ -110,7 +104,7 @@ void ccache_return(int sc, void *list, void *tail, int count) {
   }
 
   pthread_spin_lock(&bin->lock);
-  // Connect incoming chunks to the ccache freelist.
+  // Connect incoming chunks to the ccache freelist
   *(void **)tail = bin->head;
   bin->head = list;
   bin->count += count;
