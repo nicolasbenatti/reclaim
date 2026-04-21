@@ -116,16 +116,15 @@ span_t *span_alloc(int size_class) {
   span_t *s = NULL;
 
   pthread_spin_lock(&span_lock);
-  if (scache) {
+  if (likely(scache)) {
     s = scache;
     scache = s->next;
   }
   pthread_spin_unlock(&span_lock);
 
-  // Push to scache
-  if (!s) {
+  if (unlikely(!s)) {
     s = (span_t *)mmap_span();
-    if (!s)
+    if (unlikely(!s))
       return NULL;
   }
 
@@ -205,7 +204,7 @@ void *large_alloc(size_t size) {
   size_t map_size = bin_size + SPAN_SIZE;
   void *raw = mmap(NULL, map_size, PROT_READ | PROT_WRITE,
                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-  if (raw == MAP_FAILED)
+  if (unlikely(raw == MAP_FAILED))
     return NULL;
 
   uintptr_t addr = (uintptr_t)raw;

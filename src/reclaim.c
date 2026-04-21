@@ -54,11 +54,11 @@ static void *tcache_refill(int sc) {
   int got = 0;
   void *list = ccache_fetch(sc, BATCH_SIZE, &got);
 
-  if (!list) {
+  if (unlikely(!list)) {
     // NOTE: the span is directly fetched to avoid calling
     // the ccache in between.
     span_t *s = span_alloc(sc);
-    if (!s)
+    if (unlikely(!s))
       return NULL;
 
     list = s->base;

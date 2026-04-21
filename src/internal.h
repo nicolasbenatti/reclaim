@@ -63,7 +63,7 @@ typedef struct {
 // This is true for both normal and large allocations.
 
 static inline __attribute__((always_inline)) int size_to_class(size_t size) {
-  if (unlikely(size) <= MIN_ALLOC)
+  if (size <= MIN_ALLOC)
     return 0;
   if (size <= 32)
     return 1;
