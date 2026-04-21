@@ -96,23 +96,23 @@ void *central_fetch(int sc, int batch, int *out_count) {
  *
  * The size class bin is determined by `sc`.
  */
-void central_return(int sc, void *list, int count) {
+void ccache_return(int sc, void *list, void *tail, int count) {
   if (!list || count <= 0)
     return;
 
   central_bin_t *bin = &ccache[sc];
 
-  // Walk to the tail of the incoming list
-  void *tail = list;
-  for (int i = 1; i < count; i++)
-    tail = *(void **)tail;
+  if (tail == NULL) {
+    // Walk to the tail of the incoming list
+    tail = list;
+    for (int i = 1; i < count; i++)
+      tail = *(void **)tail;
+  }
 
   pthread_spin_lock(&bin->lock);
-
   // Connect incoming chunks to the ccache freelist.
   *(void **)tail = bin->head;
   bin->head = list;
   bin->count += count;
-
   pthread_spin_unlock(&bin->lock);
 }

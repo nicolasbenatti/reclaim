@@ -41,7 +41,7 @@ static void tcache_flush(int sc) {
   tcache.bins[sc].bin = rest;
   tcache.bins[sc].count -= to_flush;
 
-  central_return(sc, list, to_flush);
+  ccache_return(sc, list, tail, to_flush);
 }
 
 /**
@@ -71,7 +71,7 @@ static void *tcache_refill(int sc) {
         split = *(void **)split;
       void *central_head = *(void **)split;
       *(void **)split = NULL;
-      central_return(sc, central_head, got - BATCH_SIZE);
+      ccache_return(sc, central_head, NULL, got - BATCH_SIZE);
       got = BATCH_SIZE;
     }
   }
@@ -93,7 +93,7 @@ static void tcache_destroy(void *arg) {
   (void)arg;
   for (int sc = 0; sc < NUM_SIZE_CLASSES; sc++) {
     if (tcache.bins[sc].bin) {
-      central_return(sc, tcache.bins[sc].bin, tcache.bins[sc].count);
+      ccache_return(sc, tcache.bins[sc].bin, NULL, tcache.bins[sc].count);
       tcache.bins[sc].bin = NULL;
       tcache.bins[sc].count = 0;
     }
