@@ -104,7 +104,7 @@ void large_free(void *ptr);
 
 void ccache_init(void);
 void ccache_deinit(void);
-void *central_fetch(int sc, int batch, int *out_count);
+void *ccache_fetch(int sc, int batch, int *out_count);
 void ccache_return(int sc, void *list, void *tail, int count);
 
 #endif // INTERNAL_H

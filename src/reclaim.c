@@ -52,7 +52,7 @@ static void tcache_flush(int sc) {
  */
 static void *tcache_refill(int sc) {
   int got = 0;
-  void *list = central_fetch(sc, BATCH_SIZE, &got);
+  void *list = ccache_fetch(sc, BATCH_SIZE, &got);
 
   if (!list) {
     // NOTE: the span is directly fetched to avoid calling

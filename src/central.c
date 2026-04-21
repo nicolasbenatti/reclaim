@@ -60,7 +60,7 @@ void ccache_deinit(void) {
  * Returns: * A linked list containing the fetched chunks.
  *          * NULL if the bin for size class `sc` is empty.
  */
-void *central_fetch(int sc, int batch, int *out_count) {
+void *ccache_fetch(int sc, int batch, int *out_count) {
   central_bin_t *bin = &ccache[sc];
   void *result = NULL;
   int got = 0;
