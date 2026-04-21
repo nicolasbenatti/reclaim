@@ -21,7 +21,7 @@ def main():
                         help="Use logarithmic x axis")
     args = parser.parse_args()
 
-    # data[bench_name][(is_glibc, threads)] = throughput
+    # data[bench_name][(is_glibc, threads)] = (throughput, stddev)
     data = defaultdict(dict)
 
     with open(args.csv) as f:
@@ -31,7 +31,8 @@ def main():
             threads = int(row["n_threads"])
             is_glibc = int(row["is_glibc"])
             throughput = float(row["throughput_alloc_per_s"])
-            data[bench][(is_glibc, threads)] = throughput
+            stddev = float(row.get("throughput_stddev") or 0)
+            data[bench][(is_glibc, threads)] = (throughput, stddev)
 
     if not data:
         print("No data found in CSV.", file=sys.stderr)
@@ -49,15 +50,17 @@ def main():
         entries = data[bench]
 
         # Separate reclaim (0) and glibc (1)
-        reclaim_pts = sorted((t, v) for (g, t), v in entries.items() if g == 0)
-        glibc_pts = sorted((t, v) for (g, t), v in entries.items() if g == 1)
+        reclaim_pts = sorted((t, tp, sd) for (g, t), (tp, sd) in entries.items() if g == 0)
+        glibc_pts = sorted((t, tp, sd) for (g, t), (tp, sd) in entries.items() if g == 1)
 
         if reclaim_pts:
-            threads_r, tp_r = zip(*reclaim_pts)
-            ax.plot(threads_r, tp_r, "o-", label="reclaim", color="#1f77b4")
+            threads_r, tp_r, sd_r = zip(*reclaim_pts)
+            ax.errorbar(threads_r, tp_r, yerr=sd_r, fmt="o-", label="reclaim",
+                        color="#1f77b4", capsize=3)
         if glibc_pts:
-            threads_g, tp_g = zip(*glibc_pts)
-            ax.plot(threads_g, tp_g, "s--", label="glibc", color="#ff7f0e")
+            threads_g, tp_g, sd_g = zip(*glibc_pts)
+            ax.errorbar(threads_g, tp_g, yerr=sd_g, fmt="s--", label="glibc",
+                        color="#ff7f0e", capsize=3)
 
         ax.set_title(bench)
         ax.set_xlabel("Threads")
