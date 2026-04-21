@@ -25,7 +25,7 @@ static inline __attribute__((always_inline)) void tcache_ensure_init(void) {
  *
  * This happens when count exceeds MAX_CACHED.
  */
-static void tcache_flush(int sc) {
+__attribute__((noinline, cold)) static void tcache_flush(int sc) {
   int to_flush = tcache.bins[sc].count >> 1;
   if (to_flush < 1)
     to_flush = 1;
@@ -50,7 +50,7 @@ static void tcache_flush(int sc) {
  * If the ccache has a chunk of the right size
  * available, then take it from there; otherwise fetch from backend.
  */
-static void *tcache_refill(int sc) {
+__attribute__((noinline, cold)) static void *tcache_refill(int sc) {
   int got = 0;
   void *list = ccache_fetch(sc, BATCH_SIZE, &got);
 
@@ -89,7 +89,7 @@ static void *tcache_refill(int sc) {
 /**
  * Deallocate a tcache.
  */
-static void tcache_destroy(void *arg) {
+__attribute__((cold)) static void tcache_destroy(void *arg) {
   (void)arg;
   for (int sc = 0; sc < NUM_SIZE_CLASSES; sc++) {
     if (tcache.bins[sc].bin) {
@@ -104,7 +104,7 @@ static void tcache_destroy(void *arg) {
 /**
  * Initialise the allocator subsystem.
  */
-static void global_init(void) {
+__attribute__((cold)) static void global_init(void) {
   backend_init();
   ccache_init();
   pthread_key_create(&tcache_key, tcache_destroy);
@@ -113,7 +113,7 @@ static void global_init(void) {
 /**
  * Destruct the allocator subsystem.
  */
-static void global_deinit(void) {
+__attribute__((cold)) static void global_deinit(void) {
   tcache_destroy(NULL);
   ccache_deinit();
   // Release span memory to the OS.

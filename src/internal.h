@@ -103,9 +103,12 @@ void backend_init(void);
 void backend_deinit(void);
 
 span_t *span_alloc(int size_class);
+
 void span_release(span_t *s);
-void *large_alloc(size_t size);
-void large_free(void *ptr);
+
+__attribute__((cold, malloc, alloc_size(1))) void *large_alloc(size_t size);
+
+__attribute__((cold)) void large_free(void *ptr);
 
 void ccache_init(void);
 void ccache_deinit(void);

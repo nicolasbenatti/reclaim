@@ -52,7 +52,7 @@ void backend_deinit(void) {
  *
  * Returns: address of the span.
  */
-static void *mmap_span(void) {
+__attribute__((cold)) static void *mmap_span(void) {
   /*
    * Allocate 2 * SPAN_SIZE so to carve out an aligned SPAN_SIZE
    * region, then unmap the excess before and after.
@@ -156,7 +156,10 @@ void span_release(span_t *s) {
  * exceeding `LARGE_THRESHOLD`, which bypasses
  * all caches and goes directly mmap'd from the backend.
  */
-void *large_alloc(size_t size) {
+__attribute__((
+    cold)) // marked as cold; that's a tradeoff we make to favour smaller allocs
+void *
+large_alloc(size_t size) {
   /*
    * Large allocations must be SPAN_SIZE-aligned so that
    * recl_free() can use (ptr & SPAN_MASK) to find the header
@@ -227,7 +230,7 @@ void *large_alloc(size_t size) {
   return (char *)aligned + hdr_offset;
 }
 
-void large_free(void *ptr) {
+__attribute__((cold)) void large_free(void *ptr) {
   large_hdr_t *hdr = (large_hdr_t *)((uintptr_t)ptr & SPAN_MASK);
   size_t total = hdr->total_size;
   int class_idx = size_to_class_large(total);

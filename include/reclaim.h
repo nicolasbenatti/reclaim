@@ -19,9 +19,10 @@ void recl_alloc_main_heap(void);
  */
 void recl_free_main_heap(void);
 
-__attribute__((malloc, alloc_size(1)))
+__attribute__((hot, malloc, alloc_size(1), assume_aligned(16)))
 void *recl_malloc(size_t size);
 
+__attribute__((hot))
 void recl_free(void *ptr);
 
 #endif // RECLAIM_H
